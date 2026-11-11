@@ -142,10 +142,15 @@
         elements.previewPane.addEventListener("scroll", () => App.syncScroll(elements.previewPane, elements.editor, "preview"));
 
         elements.fileNameInput.addEventListener("change", () => {
-            state.fileName = App.ensureMarkdownExtension(elements.fileNameInput.value);
-            elements.fileNameInput.value = state.fileName;
-            App.scheduleAutosave();
+            App.renameActiveTab(elements.fileNameInput.value);
         });
+
+        elements.tabs.addEventListener("click", App.handleTabsClick);
+        elements.tabs.addEventListener("auxclick", App.handleTabsAuxClick);
+        elements.tabs.addEventListener("dblclick", App.handleTabsDoubleClick);
+        elements.newTabButton.addEventListener("click", App.createNewTab);
+        document.addEventListener("keydown", App.handleTabShortcuts);
+        window.addEventListener("pagehide", App.saveDocument);
 
         elements.viewModeButtons.forEach((button) => {
             button.addEventListener("click", () => App.setViewMode(button.dataset.viewMode));
@@ -202,18 +207,14 @@
         restoreInterfacePreferences();
         bindEvents();
 
-        const savedDocument = App.loadSavedDocument();
-        if (savedDocument) {
-            elements.editor.value = savedDocument.content;
-            state.fileName = App.ensureMarkdownExtension(savedDocument.fileName || "untitled.md");
-        } else {
-            elements.editor.value = elements.sampleDocument.textContent.trim();
-        }
+        const wasRestored = App.loadTabs();
+        App.renderTabs();
 
         elements.fileNameInput.value = state.fileName;
         App.updateTextLevelIndicator();
         App.renderPreview();
-        elements.saveStatus.textContent = savedDocument ? "Restored from this browser" : "Not saved yet";
+        App.restorePreviewScroll();
+        elements.saveStatus.textContent = wasRestored ? "Restored from this browser" : "Not saved yet";
     }
 
     initialize();

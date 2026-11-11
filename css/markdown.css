@@ -94,6 +94,16 @@
     font-size: 0.9em;
 }
 
+/* Same rule as tables: scroll wide content, hide only the scrollbar bar. */
+.markdown-body pre,
+.markdown-body .katex-display {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.markdown-body pre::-webkit-scrollbar,
+.markdown-body .katex-display::-webkit-scrollbar { display: none; }
+
 .markdown-body pre {
     padding: var(--space-2);
     border-radius: var(--radius);

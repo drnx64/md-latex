@@ -4,6 +4,7 @@
 window.App = {
     STORAGE_KEYS: Object.freeze({
         document: "markdownLatexEditor.document.v1",
+        tabs: "markdownLatexEditor.tabs.v1",
         theme: "markdownLatexEditor.theme.v1",
         splitPercent: "markdownLatexEditor.splitPercent.v1",
         viewMode: "markdownLatexEditor.viewMode.v1",
@@ -39,6 +40,8 @@ window.App = {
 
     state: {
         fileName: "untitled.md",
+        tabs: [],
+        activeTabId: null,
         viewMode: "split",
         isScrollSyncEnabled: true,
         renderTimer: null,
@@ -53,6 +56,8 @@ window.App = {
         divider: document.getElementById("divider"),
         previewPane: document.getElementById("previewPane"),
         preview: document.getElementById("preview"),
+        tabs: document.getElementById("tabs"),
+        newTabButton: document.getElementById("newTabButton"),
         fileNameInput: document.getElementById("fileNameInput"),
         fileInput: document.getElementById("fileInput"),
         sampleDocument: document.getElementById("sampleDocument"),

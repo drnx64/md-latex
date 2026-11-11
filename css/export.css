@@ -27,6 +27,7 @@ body.standalone {
     }
 
     .app-header,
+    .tab-bar,
     .toolbar,
     .editor-pane,
     .divider,

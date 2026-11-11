@@ -199,6 +199,119 @@
     background: var(--border);
 }
 
+/* Chrome-style document tabs: content-sized strip, active tab lit with an
+   amber rail; excess width scrolls sideways (bar hidden) like the toolbar. */
+.tab-bar {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-quarter);
+    padding: var(--space-quarter) var(--space-2) 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.tabs {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-quarter);
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+    display: flex;
+    align-items: stretch;
+    min-width: 104px;
+    max-width: 240px;
+    border-radius: var(--radius-small) var(--radius-small) 0 0;
+    background: transparent;
+    transition: background-color var(--duration-quick) var(--ease-out);
+}
+
+.tab:hover { background: var(--surface-raised); }
+
+.tab.is-active {
+    background: var(--bg);
+    box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.tab-button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 var(--space-1);
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--step-small);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tab-button:hover { color: var(--text); }
+.tab.is-active .tab-button { color: var(--text); font-weight: 600; }
+
+/* Revealed on tab hover, focus, or for the active tab; hidden ones ignore the pointer. */
+.tab-close {
+    align-self: center;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-right: var(--space-quarter);
+    border: 0;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-quick) var(--ease-out),
+                background-color var(--duration-quick) var(--ease-out),
+                color var(--duration-quick) var(--ease-out);
+}
+
+.tab:hover .tab-close,
+.tab:focus-within .tab-close,
+.tab.is-active .tab-close {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.tab-close:hover { background: var(--surface-raised); color: var(--text); }
+.tab-close .icon { width: 14px; height: 14px; }
+
+.tab-new {
+    flex: none;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-out),
+                color var(--duration-quick) var(--ease-out);
+}
+
+.tab-new:hover { background: var(--surface-raised); color: var(--text); }
+.tab-new .icon { width: 16px; height: 16px; }
+
 /* One row, always: excess width scrolls sideways (bar hidden) instead of wrapping. */
 .toolbar {
     display: flex;
@@ -292,4 +405,9 @@
     .segmented .button { min-height: 32px; }
     .toolbar .button { min-width: 40px; }
     .menu-item { min-height: 48px; }
+    /* No hover on touch: tabs are tall targets and their close button is always on. */
+    .tab-button,
+    .tab-close,
+    .tab-new { min-height: 40px; }
+    .tab-close { width: 32px; opacity: 1; pointer-events: auto; }
 }

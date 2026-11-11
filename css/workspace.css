@@ -49,7 +49,10 @@
 .divider.is-dragging { background: var(--accent); }
 
 .preview-pane {
-    overflow: auto;
+    /* The pane must never draw a horizontal bar of its own: wide content
+       (tables, code, math) scrolls inside its own box instead. */
+    overflow-x: hidden;
+    overflow-y: auto;
     background: var(--surface);
 }
 
