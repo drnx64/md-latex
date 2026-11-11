@@ -4,6 +4,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-1) var(--space-2);
+    min-height: 48px;
     padding: var(--space-1) var(--space-2);
     background: var(--surface);
 }
@@ -46,14 +47,20 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-1);
 }
 
 .action-group {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-quarter);
+    gap: var(--space-1);
+}
+
+/* Groups read as workflow stages (document, workspace, output), divided by a hairline. */
+.action-group + .action-group {
+    padding-left: var(--space-1);
+    border-left: 1px solid var(--border);
 }
 
 .segmented {
@@ -128,6 +135,8 @@
     flex-direction: column;
     gap: var(--space-quarter);
     min-width: 208px;
+    max-height: 60vh;
+    overflow-y: auto;
     padding: var(--space-quarter);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -154,7 +163,7 @@
     align-items: center;
     gap: var(--space-1);
     width: 100%;
-    min-height: 32px;
+    min-height: 36px;
     padding: 0 var(--space-1);
     border: 0;
     border-radius: var(--radius-small);
@@ -174,21 +183,80 @@
 .menu-item .icon { width: 16px; height: 16px; flex: none; color: var(--text-muted); }
 .menu-item:hover .icon { color: var(--text); }
 
+/* Right-aligned syntax marker or keyboard shortcut, in secondary text. */
+.menu-hint {
+    margin-left: auto;
+    padding-left: var(--space-2);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+.menu-separator {
+    height: 1px;
+    margin: var(--space-quarter) var(--space-1);
+    background: var(--border);
+}
+
+/* One row, always: excess width scrolls sideways (bar hidden) instead of wrapping. */
 .toolbar {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-quarter) var(--space-3);
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-1);
     padding: var(--space-quarter) var(--space-2);
     background: var(--surface);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+.toolbar::-webkit-scrollbar { display: none; }
 
 .toolbar-group {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
     gap: var(--space-quarter);
+    flex: none;
 }
 
 .toolbar .button { min-width: 32px; }
+
+/* Inline formatting: one joined segment, outer radius only on the group ends. */
+.toolbar .segment {
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.toolbar .segment .button { border-radius: 0; }
+.toolbar .segment .button + .button { border-left: 1px solid var(--border); }
+.toolbar .segment .button:first-child { border-radius: calc(var(--radius) - 1px) 0 0 calc(var(--radius) - 1px); }
+.toolbar .segment .button:last-child { border-radius: 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0; }
+
+/* Dropdown triggers: label plus a chevron that flips when the menu opens. */
+.menu-trigger { gap: var(--space-quarter); }
+
+.menu-trigger .chevron .icon {
+    width: 16px;
+    height: 16px;
+    transition: transform var(--duration-quick) var(--ease-out);
+}
+
+.menu-trigger[aria-expanded="true"] .chevron .icon { transform: rotate(180deg); }
+
+/* Toolbar menus escape the horizontally scrolling row by fixing to the viewport;
+   app.js pins each one against its trigger. */
+.toolbar .menu {
+    position: fixed;
+    top: 0;
+    right: auto;
+    left: 0;
+    transform-origin: top left;
+}
 
 .status-bar {
     display: flex;
@@ -214,6 +282,8 @@
     .segmented [data-view-mode="split"] { display: none; }
     .file-name-input { width: 100%; }
     .status-bar #saveStatus { margin-left: 0; }
+    /* Groups may wrap to their own lines here; the gap alone separates them. */
+    .action-group + .action-group { padding-left: 0; border-left: 0; }
 }
 
 @media (pointer: coarse) {
@@ -221,4 +291,5 @@
     .file-name-input { min-height: 40px; }
     .segmented .button { min-height: 32px; }
     .toolbar .button { min-width: 40px; }
+    .menu-item { min-height: 48px; }
 }

@@ -8,7 +8,8 @@ A browser-based editor for Markdown with live LaTeX rendering through KaTeX. Wri
 - Two-way scroll sync between editor and preview
 - Math: inline `$x$` / `\(x\)`, block `$$...$$`, and LaTeX environments (`\begin{align}`)
 - Markdown extras: tables, task lists, strikethrough, fenced code with Prism highlighting
-- Formatting toolbar with shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O
+- Single-row formatting toolbar that never wraps: a joined `B` `I` `S` `</>` segment plus `H1 ▾`, `Lists ▾`, `Insert ▾`, and `Math ▾` dropdowns — the heading trigger follows the caret (H1–H4 or P), and Math carries equation and `\frac`/`\sum`/matrix templates
+- Shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O
 - Dark and light themes, autosave to browser storage
 - Export: `.md` download, standalone HTML, PDF (html2pdf), print
 - Original SVG icon set with a responsive header: text labels on wide screens, icon-only at 800px and below, and an overflow menu for Download, Export HTML, and Print
@@ -43,5 +44,7 @@ Loaded from CDN: marked 12.0.2, DOMPurify 3.1.6, KaTeX 0.16.11 (JavaScript only 
 
 - Bebas Neue for display, Inter for body and UI, both self-hosted
 - One accent color (amber), dark-first, all styling from tokens in `css/tokens.css`
+- Tables wrap at the measure; when content still overflows, only the horizontal scrollbar bar is hidden — scrolling still works
+- The header groups by workflow (document → workspace → output) with hairline dividers; text labels on wide screens, icon-only at 800px and below
 - KaTeX fonts self-hosted in `vendor/katex/` (20 woff2 files)
 - The `unslop-check` script reports no findings at P0, P1, or P2

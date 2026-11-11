@@ -117,6 +117,8 @@
         heading1: () => toggleLinePrefix(() => "# ", /^#\s/),
         heading2: () => toggleLinePrefix(() => "## ", /^##\s/),
         heading3: () => toggleLinePrefix(() => "### ", /^###\s/),
+        heading4: () => toggleLinePrefix(() => "#### ", /^####\s/),
+        paragraph: () => toggleLinePrefix(() => "", /^#{1,6}\s/),
         bulletList: () => toggleLinePrefix(() => "- ", /^[-*+]\s(?!\[[ xX]\])/),
         orderedList: () => toggleLinePrefix((lineNumber) => `${lineNumber}. `, /^\d+\.\s/),
         taskList: () => toggleLinePrefix(() => "- [ ] ", /^[-*+]\s\[[ xX]\]\s/),
@@ -128,11 +130,43 @@
         horizontalRule: () => insertBlock("---", 3, 3),
         inlineMath: () => wrapSelection("$", "$", "x^2"),
         blockMath: () => insertFencedBlock("$$", "$$", "E = mc^2"),
+        // Math templates wrap in $...$ like inlineMath; the caret lands in the first slot.
+        fraction: () => wrapSelection("$\\frac{", "}{}$", ""),
+        squareRoot: () => wrapSelection("$\\sqrt{", "}$", ""),
+        summation: () => wrapSelection("$\\sum_{", "}^{}$", ""),
+        integral: () => wrapSelection("$\\int_{", "}^{}$", ""),
+        matrix: () => insertBlock(String.raw`$$
+\begin{pmatrix}
+1 & 0 \\
+0 & 1
+\end{pmatrix}
+$$`, 18, 18),
+        alignEnvironment: () => insertBlock(String.raw`\begin{align}
+
+\end{align}`, 14, 14),
     };
 
     function applyFormat(formatName) {
         const formatAction = FORMAT_ACTIONS[formatName];
         if (formatAction) formatAction();
+    }
+
+    // Mirrors the caret's line into the H1▾ trigger label (H1..H4 or P).
+    function updateTextLevelIndicator() {
+        const label = elements.headingTriggerLabel;
+        const trigger = elements.headingMenuButton;
+        if (!label || !trigger) return;
+
+        const { value, selectionStart } = elements.editor;
+        const lineStart = value.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
+        const lineEnd = value.indexOf("\n", selectionStart);
+        const line = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
+        const match = line.match(/^(#{1,6})(\s|$)/);
+        const level = match ? `H${match[1].length}` : "P";
+
+        label.textContent = level;
+        trigger.setAttribute("aria-label", `Text level: ${level}`);
+        trigger.title = `Text level: ${level}`;
     }
 
     function continueListOnEnter() {
@@ -199,5 +233,5 @@
         }
     }
 
-    Object.assign(App, { applyFormat, handleEditorKeydown, handleGlobalKeydown });
+    Object.assign(App, { applyFormat, handleEditorKeydown, handleGlobalKeydown, updateTextLevelIndicator });
 })();

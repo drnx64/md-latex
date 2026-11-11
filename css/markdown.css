@@ -67,9 +67,15 @@
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
+    /* Cells wrap at width: 100%. When content still overflows, hide only the
+       scrollbar bar — wheel, trackpad, and Shift+arrow scrolling keep working. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
 }
+
+.markdown-body table::-webkit-scrollbar { display: none; }
 
 .markdown-body th,
 .markdown-body td {

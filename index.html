@@ -25,6 +25,10 @@
     </div>
     <div class="header-actions">
         <div class="action-group">
+            <button type="button" class="button" id="newButton" data-icon="filePlus" aria-label="New document" title="New document"><span class="button-label">New document</span></button>
+            <button type="button" class="button" id="openButton" data-icon="openFile" aria-label="Open file" title="Open a local file (Ctrl+O)"><span class="button-label">Open file</span></button>
+        </div>
+        <div class="action-group">
             <div class="segmented" role="group" aria-label="Layout">
                 <button type="button" class="button" data-view-mode="edit" data-icon="edit" aria-pressed="false" aria-label="Editor view" title="Editor view"><span class="button-label">Editor</span></button>
                 <button type="button" class="button" data-view-mode="split" data-icon="split" aria-pressed="true" aria-label="Split view" title="Split view"><span class="button-label">Split</span></button>
@@ -32,10 +36,6 @@
             </div>
             <button type="button" class="button" id="syncScrollButton" data-icon="syncScroll" aria-pressed="true" aria-label="Sync scroll" title="Sync scroll"><span class="button-label">Sync scroll</span></button>
             <button type="button" class="button" id="themeButton" data-icon="sun" aria-label="Light theme" title="Light theme"><span class="button-label">Light theme</span></button>
-        </div>
-        <div class="action-group">
-            <button type="button" class="button" id="newButton" data-icon="filePlus" aria-label="New document" title="New document"><span class="button-label">New document</span></button>
-            <button type="button" class="button" id="openButton" data-icon="openFile" aria-label="Open file" title="Open a local file (Ctrl+O)"><span class="button-label">Open file</span></button>
         </div>
         <div class="action-group">
             <button type="button" class="button button-primary" id="exportPdfButton" data-icon="pdf" aria-label="Export PDF" title="Export PDF"><span class="button-label">Export PDF</span></button>
@@ -53,34 +53,55 @@
 
 <input type="file" id="fileInput" accept=".md,.markdown,.mdown,.txt,.tex,text/markdown,text/plain" hidden>
 
-<div class="toolbar" role="toolbar" aria-label="Formatting">
-    <div class="toolbar-group" role="group" aria-label="Text style">
+<div class="toolbar" id="toolbar" role="toolbar" aria-label="Formatting">
+    <div class="toolbar-group segment" role="group" aria-label="Inline formatting">
         <button type="button" class="button" data-format="bold" aria-label="Bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
         <button type="button" class="button" data-format="italic" aria-label="Italic" title="Italic (Ctrl+I)"><em>I</em></button>
         <button type="button" class="button" data-format="strikethrough" aria-label="Strikethrough" title="Strikethrough"><s>S</s></button>
         <button type="button" class="button" data-format="inlineCode" aria-label="Inline code" title="Inline code">&lt;/&gt;</button>
     </div>
-    <div class="toolbar-group" role="group" aria-label="Headings">
-        <button type="button" class="button" data-format="heading1" aria-label="Heading 1" title="Heading 1">H1</button>
-        <button type="button" class="button" data-format="heading2" aria-label="Heading 2" title="Heading 2">H2</button>
-        <button type="button" class="button" data-format="heading3" aria-label="Heading 3" title="Heading 3">H3</button>
+    <div class="toolbar-group toolbar-dropdown">
+        <button type="button" class="button menu-trigger" id="headingMenuButton" aria-haspopup="menu" aria-expanded="false" aria-controls="headingMenu" aria-label="Text level: H1" title="Text level: H1"><span id="headingTriggerLabel">H1</span><span class="chevron" data-icon="chevron"></span></button>
+        <div class="menu" id="headingMenu" role="menu" aria-label="Text level" hidden>
+            <button type="button" class="menu-item" role="menuitem" data-format="heading1">Heading 1<span class="menu-hint">#</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="heading2">Heading 2<span class="menu-hint">##</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="heading3">Heading 3<span class="menu-hint">###</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="heading4">Heading 4<span class="menu-hint">####</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="paragraph">Paragraph</button>
+        </div>
     </div>
-    <div class="toolbar-group" role="group" aria-label="Lists and quotes">
-        <button type="button" class="button" data-format="bulletList" title="Bulleted list">Bullets</button>
-        <button type="button" class="button" data-format="orderedList" title="Numbered list">Numbers</button>
-        <button type="button" class="button" data-format="taskList" title="Task list">Tasks</button>
-        <button type="button" class="button" data-format="quote" title="Quote">Quote</button>
+    <div class="toolbar-group toolbar-dropdown">
+        <button type="button" class="button menu-trigger" id="listsMenuButton" aria-haspopup="menu" aria-expanded="false" aria-controls="listsMenu">Lists<span class="chevron" data-icon="chevron"></span></button>
+        <div class="menu" id="listsMenu" role="menu" aria-label="Lists" hidden>
+            <button type="button" class="menu-item" role="menuitem" data-format="bulletList">Bulleted list<span class="menu-hint">-</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="orderedList">Numbered list<span class="menu-hint">1.</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="taskList">Task list<span class="menu-hint">- [ ]</span></button>
+        </div>
     </div>
-    <div class="toolbar-group" role="group" aria-label="Insert">
-        <button type="button" class="button" data-format="link" title="Link (Ctrl+K)">Link</button>
-        <button type="button" class="button" data-format="image" title="Image">Image</button>
-        <button type="button" class="button" data-format="table" title="Table">Table</button>
-        <button type="button" class="button" data-format="codeBlock" title="Code block">Code block</button>
-        <button type="button" class="button" data-format="horizontalRule" title="Horizontal rule">Rule</button>
+    <div class="toolbar-group toolbar-dropdown">
+        <button type="button" class="button menu-trigger" id="insertMenuButton" aria-haspopup="menu" aria-expanded="false" aria-controls="insertMenu">Insert<span class="chevron" data-icon="chevron"></span></button>
+        <div class="menu" id="insertMenu" role="menu" aria-label="Insert" hidden>
+            <button type="button" class="menu-item" role="menuitem" data-format="link">Link<span class="menu-hint">Ctrl+K</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="image">Image</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="table">Table</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="quote">Quote<span class="menu-hint">&gt;</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="codeBlock">Code block<span class="menu-hint">```</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="horizontalRule">Horizontal rule<span class="menu-hint">---</span></button>
+        </div>
     </div>
-    <div class="toolbar-group" role="group" aria-label="Math">
-        <button type="button" class="button" data-format="inlineMath" title="Inline math">$x$</button>
-        <button type="button" class="button" data-format="blockMath" title="Block math">$$ block</button>
+    <div class="toolbar-group toolbar-dropdown">
+        <button type="button" class="button menu-trigger" id="mathMenuButton" aria-haspopup="menu" aria-expanded="false" aria-controls="mathMenu">Math<span class="chevron" data-icon="chevron"></span></button>
+        <div class="menu" id="mathMenu" role="menu" aria-label="Math" hidden>
+            <button type="button" class="menu-item" role="menuitem" data-format="inlineMath">Inline equation<span class="menu-hint">$</span></button>
+            <button type="button" class="menu-item" role="menuitem" data-format="blockMath">Display block<span class="menu-hint">$$</span></button>
+            <div class="menu-separator" role="separator"></div>
+            <button type="button" class="menu-item" role="menuitem" data-format="fraction">Fraction</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="squareRoot">Square root</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="summation">Summation</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="integral">Integral</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="matrix">Matrix</button>
+            <button type="button" class="menu-item" role="menuitem" data-format="alignEnvironment">Align environment</button>
+        </div>
     </div>
 </div>
 

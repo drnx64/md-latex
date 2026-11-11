@@ -30,26 +30,109 @@
         }
     }
 
-    let isOverflowMenuOpen = false;
+    // One implementation for every menu (header overflow + toolbar dropdowns).
+    // Fixed-position menus are pinned against their trigger so the toolbar's
+    // horizontal scroll container cannot clip them.
+    function bindDropdown(trigger, menu, options = {}) {
+        const focusTriggerOnSelect = Boolean(options.focusTriggerOnSelect);
+        const scrollContainer = options.scrollContainer || null;
+        let isOpen = false;
 
-    function openOverflowMenu() {
-        if (isOverflowMenuOpen) return;
-        isOverflowMenuOpen = true;
-        elements.overflowMenu.hidden = false;
-        elements.overflowButton.setAttribute("aria-expanded", "true");
-        window.requestAnimationFrame(() => elements.overflowMenu.classList.add("is-open"));
-        const firstItem = elements.overflowMenu.querySelector(".menu-item");
-        if (firstItem) firstItem.focus();
-    }
+        function positionMenu() {
+            if (window.getComputedStyle(menu).position !== "fixed") return;
+            const triggerRect = trigger.getBoundingClientRect();
+            const menuWidth = menu.offsetWidth;
+            const menuHeight = menu.offsetHeight;
+            const left = Math.min(triggerRect.left, window.innerWidth - menuWidth - 8);
+            const topBelow = triggerRect.bottom + 4;
+            const top = topBelow + menuHeight > window.innerHeight - 8
+                ? triggerRect.top - menuHeight - 4
+                : topBelow;
+            menu.style.left = `${Math.max(8, Math.round(left))}px`;
+            menu.style.top = `${Math.max(8, Math.round(top))}px`;
+        }
 
-    function closeOverflowMenu(returnFocus) {
-        if (!isOverflowMenuOpen) return;
-        isOverflowMenuOpen = false;
-        elements.overflowButton.setAttribute("aria-expanded", "false");
-        elements.overflowMenu.classList.remove("is-open");
-        // Hide once the 150ms close transition has finished; pointer-events are already off.
-        window.setTimeout(() => { if (!isOverflowMenuOpen) elements.overflowMenu.hidden = true; }, 150);
-        if (returnFocus) elements.overflowButton.focus();
+        function openMenu() {
+            if (isOpen) return;
+            isOpen = true;
+            menu.hidden = false;
+            trigger.setAttribute("aria-expanded", "true");
+            positionMenu();
+            window.requestAnimationFrame(() => menu.classList.add("is-open"));
+            const firstItem = menu.querySelector(".menu-item");
+            if (firstItem) firstItem.focus();
+        }
+
+        function closeMenu(returnFocus) {
+            if (!isOpen) return;
+            isOpen = false;
+            trigger.setAttribute("aria-expanded", "false");
+            menu.classList.remove("is-open");
+            // Hide once the 150ms close transition has finished; pointer-events are already off.
+            window.setTimeout(() => { if (!isOpen) menu.hidden = true; }, 150);
+            if (returnFocus) trigger.focus();
+        }
+
+        trigger.addEventListener("click", () => {
+            if (isOpen) closeMenu(true);
+            else openMenu();
+        });
+
+        trigger.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                openMenu();
+            } else if (event.key === "Escape" && isOpen) {
+                closeMenu(true);
+            }
+        });
+
+        // Any activation inside the menu runs the item's own listener first (bubbling),
+        // then the menu closes; toolbar menus leave focus where the action put it.
+        menu.addEventListener("click", () => closeMenu(focusTriggerOnSelect));
+
+        menu.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                event.stopPropagation();
+                closeMenu(true);
+                return;
+            }
+            const items = Array.from(menu.querySelectorAll(".menu-item"));
+            if (items.length === 0) return;
+            const index = items.indexOf(document.activeElement);
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                items[(index + 1) % items.length].focus();
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                items[(index - 1 + items.length) % items.length].focus();
+            } else if (event.key === "Home") {
+                event.preventDefault();
+                items[0].focus();
+            } else if (event.key === "End") {
+                event.preventDefault();
+                items[items.length - 1].focus();
+            }
+        });
+
+        menu.addEventListener("focusout", (event) => {
+            const next = event.relatedTarget;
+            if (!next) return;
+            if (next === trigger || menu.contains(next)) return;
+            closeMenu(false);
+        });
+
+        document.addEventListener("pointerdown", (event) => {
+            if (isOpen && !menu.parentElement.contains(event.target)) closeMenu(false);
+        });
+
+        // A moved trigger leaves the menu behind: close rather than pin stale.
+        if (scrollContainer) {
+            scrollContainer.addEventListener("scroll", () => closeMenu(true), { passive: true });
+        }
+        window.addEventListener("resize", () => closeMenu(false));
+
+        return { close: closeMenu, isOpen: () => isOpen };
     }
 
     function bindEvents() {
@@ -81,59 +164,16 @@
         elements.printButton.addEventListener("click", App.printDocument);
         elements.exportPdfButton.addEventListener("click", App.exportPdf);
 
-        elements.overflowButton.addEventListener("click", () => {
-            if (isOverflowMenuOpen) closeOverflowMenu(true);
-            else openOverflowMenu();
-        });
+        bindDropdown(elements.overflowButton, elements.overflowMenu, { focusTriggerOnSelect: true });
+        bindDropdown(elements.headingMenuButton, elements.headingMenu, { scrollContainer: elements.toolbar });
+        bindDropdown(elements.listsMenuButton, elements.listsMenu, { scrollContainer: elements.toolbar });
+        bindDropdown(elements.insertMenuButton, elements.insertMenu, { scrollContainer: elements.toolbar });
+        bindDropdown(elements.mathMenuButton, elements.mathMenu, { scrollContainer: elements.toolbar });
 
-        elements.overflowButton.addEventListener("keydown", (event) => {
-            if (event.key === "ArrowDown") {
-                event.preventDefault();
-                openOverflowMenu();
-            } else if (event.key === "Escape" && isOverflowMenuOpen) {
-                closeOverflowMenu(true);
-            }
-        });
-
-        // Any activation inside the menu runs the item's own listener first (bubbling),
-        // then the menu closes and hands focus back to the trigger.
-        elements.overflowMenu.addEventListener("click", () => closeOverflowMenu(true));
-
-        elements.overflowMenu.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") {
-                event.stopPropagation();
-                closeOverflowMenu(true);
-                return;
-            }
-            const items = Array.from(elements.overflowMenu.querySelectorAll(".menu-item"));
-            if (items.length === 0) return;
-            const index = items.indexOf(document.activeElement);
-            if (event.key === "ArrowDown") {
-                event.preventDefault();
-                items[(index + 1) % items.length].focus();
-            } else if (event.key === "ArrowUp") {
-                event.preventDefault();
-                items[(index - 1 + items.length) % items.length].focus();
-            } else if (event.key === "Home") {
-                event.preventDefault();
-                items[0].focus();
-            } else if (event.key === "End") {
-                event.preventDefault();
-                items[items.length - 1].focus();
-            }
-        });
-
-        elements.overflowMenu.addEventListener("focusout", (event) => {
-            const next = event.relatedTarget;
-            if (!next) return;
-            if (next === elements.overflowButton || elements.overflowMenu.contains(next)) return;
-            closeOverflowMenu(false);
-        });
-
-        document.addEventListener("pointerdown", (event) => {
-            if (isOverflowMenuOpen && !elements.overflowMenu.parentElement.contains(event.target)) {
-                closeOverflowMenu(false);
-            }
+        // The heading trigger mirrors the caret's block level (H1..H4 or P).
+        elements.editor.addEventListener("input", App.updateTextLevelIndicator);
+        document.addEventListener("selectionchange", () => {
+            if (document.activeElement === elements.editor) App.updateTextLevelIndicator();
         });
 
         elements.fileInput.addEventListener("change", () => {
@@ -171,6 +211,7 @@
         }
 
         elements.fileNameInput.value = state.fileName;
+        App.updateTextLevelIndicator();
         App.renderPreview();
         elements.saveStatus.textContent = savedDocument ? "Restored from this browser" : "Not saved yet";
     }
