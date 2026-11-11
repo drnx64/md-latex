@@ -193,6 +193,34 @@
         elements.divider.addEventListener("pointercancel", App.endDividerDrag);
         elements.divider.addEventListener("keydown", App.handleDividerKeydown);
 
+        elements.modalCancelButton.addEventListener("click", () => App.closeConfirm(false));
+        elements.modalConfirmButton.addEventListener("click", () => App.closeConfirm(true));
+        elements.modalOverlay.addEventListener("click", (event) => {
+            if (event.target === elements.modalOverlay) App.closeConfirm(false);
+        });
+        elements.modalOverlay.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                event.stopPropagation();
+                App.closeConfirm(false);
+                return;
+            }
+            if (event.key !== "Tab") return;
+            // Two-button focus trap: Tab wraps between Cancel and Confirm,
+            // and pulls focus back if a click dropped it outside the dialog.
+            const first = elements.modalCancelButton;
+            const last = elements.modalConfirmButton;
+            if (!elements.modalOverlay.contains(document.activeElement)) {
+                event.preventDefault();
+                first.focus();
+            } else if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
         elements.workspace.addEventListener("dragover", App.handleDragOver);
         elements.workspace.addEventListener("dragleave", App.handleDragLeave);
         elements.workspace.addEventListener("drop", App.handleDrop);

@@ -54,6 +54,7 @@ window.App = {
         noticeTimer: null,
         noticeLeaveTimer: null,
         themeSwapTimer: null,
+        isConfirmOpen: false,
         scrollSource: null,
     },
 
@@ -83,6 +84,10 @@ window.App = {
         readingTime: document.getElementById("readingTime"),
         saveStatus: document.getElementById("saveStatus"),
         notice: document.getElementById("notice"),
+        modalOverlay: document.getElementById("modalOverlay"),
+        modalMessage: document.getElementById("modalMessage"),
+        modalCancelButton: document.getElementById("modalCancelButton"),
+        modalConfirmButton: document.getElementById("modalConfirmButton"),
         toolbar: document.getElementById("toolbar"),
         headingMenuButton: document.getElementById("headingMenuButton"),
         headingTriggerLabel: document.getElementById("headingTriggerLabel"),

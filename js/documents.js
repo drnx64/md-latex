@@ -132,20 +132,26 @@
         elements.editor.focus();
     }
 
-    function closeTab(tabId) {
-        const index = state.tabs.findIndex((tab) => tab.id === tabId);
-        if (index === -1) return;
+    async function closeTab(tabId) {
+        const tab = state.tabs.find((entry) => entry.id === tabId);
+        if (!tab) return;
 
-        const tab = state.tabs[index];
         const isActive = tab.id === state.activeTabId;
         const content = isActive ? elements.editor.value : tab.content;
 
         // Chrome closes instantly; here the browser copy is the only copy,
         // so a tab with text in it asks first. Empty tabs close on the spot.
         if (content.trim() !== "") {
-            const confirmed = window.confirm(`Close "${tab.fileName}"? Its text will be removed from this browser.`);
+            const confirmed = await App.showConfirm(
+                `Close "${tab.fileName}"? Its text will be removed from this browser.`,
+                "Close",
+            );
             if (!confirmed) return;
         }
+
+        // Re-lookup after the await: the strip may have changed underneath.
+        const index = state.tabs.findIndex((entry) => entry.id === tabId);
+        if (index === -1) return;
 
         const focusWasInTabs = elements.tabs.contains(document.activeElement);
         const tabElement = elements.tabs.querySelector(`.tab[data-tab-id="${tabId}"]`);
@@ -242,7 +248,7 @@
     }
 
     function handleTabShortcuts(event) {
-        if (event.isComposing) return;
+        if (event.isComposing || state.isConfirmOpen) return;
         const hasModifier = event.ctrlKey || event.metaKey;
         if (!hasModifier) return;
 
@@ -372,13 +378,16 @@
         saveDocument();
     }
 
-    function confirmReplaceDocument() {
+    async function confirmReplaceDocument() {
         if (elements.editor.value.trim() === "") return true;
-        return window.confirm("Replace the current document? The current text will be overwritten.");
+        return App.showConfirm(
+            "Replace the current document? The current text will be overwritten.",
+            "Replace",
+        );
     }
 
-    function createNewDocument() {
-        if (!confirmReplaceDocument()) return;
+    async function createNewDocument() {
+        if (!(await confirmReplaceDocument())) return;
         setDocument("", "untitled.md");
         elements.editor.focus();
     }
@@ -389,7 +398,7 @@
             App.showNotice("That file is larger than 5 MB.", true);
             return;
         }
-        if (!confirmReplaceDocument()) return;
+        if (!(await confirmReplaceDocument())) return;
 
         try {
             const fileText = await file.text();

@@ -1,7 +1,7 @@
 (() => {
     "use strict";
 
-    const { elements, LINE_MARKER_PATTERN, LIST_LINE_PATTERN } = App;
+    const { state, elements, LINE_MARKER_PATTERN, LIST_LINE_PATTERN } = App;
 
     function replaceEditorRange(rangeStart, rangeEnd, replacement, selectionStart, selectionEnd) {
         const editor = elements.editor;
@@ -220,6 +220,7 @@ $$`, 18, 18),
     }
 
     function handleGlobalKeydown(event) {
+        if (state.isConfirmOpen) return;
         const hasModifier = event.ctrlKey || event.metaKey;
         if (!hasModifier || event.altKey || event.target === elements.editor) return;
 

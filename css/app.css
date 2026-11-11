@@ -532,6 +532,60 @@
   color: var(--danger);
 }
 
+/* Confirmation dialog: the app's own modal in place of native confirm().
+   Closed state doubles as the exit (120ms ease-in); .is-open is the entrance. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  background: var(--overlay);
+  opacity: 0;
+  transition: opacity var(--duration-exit) var(--ease-in);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-overlay.is-open {
+  opacity: 1;
+  transition: opacity var(--duration-quick) var(--ease-out);
+}
+
+.modal {
+  width: min(420px, 100%);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-menu);
+  transform: scale(0.95);
+  transition: transform var(--duration-exit) var(--ease-in);
+}
+
+.modal-overlay.is-open .modal {
+  transform: scale(1);
+  transition: transform var(--duration-quick) var(--ease-out);
+}
+
+.modal-message {
+  margin: 0 0 var(--space-3);
+  color: var(--text);
+  font-size: var(--step-base);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
 /* Status notices fade in as they arrive and out as the timer clears them. */
 .notice.is-entering {
   animation: notice-in var(--duration-base) var(--ease-out);

@@ -46,10 +46,26 @@
 .markdown-body ul:has(> li > input[type="checkbox"]) { list-style: none; padding-left: var(--space-3); }
 
 .markdown-body blockquote {
-    padding: var(--space-1) var(--space-2);
+    position: relative;
+    /* Right padding clears the quote mark so text never runs under it. */
+    padding: var(--space-1) var(--space-4) var(--space-1) var(--space-2);
     border-radius: var(--radius);
     background: var(--surface-raised);
     color: var(--text-muted);
+}
+
+/* Big accent quote mark, top right; decorative, so it is never selectable. */
+.markdown-body blockquote::after {
+    content: "\201D";
+    position: absolute;
+    top: var(--space-quarter);
+    right: var(--space-1);
+    color: var(--accent);
+    font-size: var(--step-3);
+    font-style: italic; /* unslop-ignore ITALIC user explicitly asked for an italic quote mark */
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
 }
 
 .markdown-body blockquote > :last-child { margin-bottom: 0; }

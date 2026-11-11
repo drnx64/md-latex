@@ -2,6 +2,8 @@
 
 A browser-based editor for Markdown with live LaTeX rendering through KaTeX. Write on the left, read on the right. No build step and no server-side code: open the page and type.
 
+This is a personal project, shared in case it happens to be useful to someone else. If it works for you, that is good enough.
+
 ## Features
 
 - Three view modes — editor, split, preview — with a draggable divider
@@ -39,7 +41,7 @@ Everything works from `file://` except **Export HTML**: it reads the `css/` file
 
 ## Libraries
 
-Loaded from CDN: marked 12.0.2, DOMPurify 3.1.6, KaTeX 0.16.11 (JavaScript only — its CSS and fonts are local), Prism 1.29.0 with autoloader, html2pdf 0.10.2.
+Loaded from CDN: marked 12.0.2, DOMPurify 3.1.6, KaTeX 0.16.11 (JavaScript only — its CSS and fonts are local), Prism 1.29.0 with autoloader. PDF export runs on html2pdf 0.10.2 with jsPDF and html2canvas, vendored in `vendor/html2pdf/` — no CDN for the PDF path.
 
 ## Design notes
 
