@@ -1,0 +1,224 @@
+.app-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    background: var(--surface);
+}
+
+.title-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.app-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+}
+
+.app-title .mark { width: 28px; height: 28px; flex: none; }
+
+.file-name-input {
+    width: 224px;
+    max-width: 100%;
+    min-height: 32px;
+    padding: 0 var(--space-1);
+    border: 0;
+    border-radius: var(--radius-small);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--step-small);
+}
+
+.header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.action-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-quarter);
+}
+
+.segmented {
+    display: flex;
+    align-items: center;
+    gap: var(--space-quarter);
+    padding: var(--space-quarter);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.segmented .button { min-height: 24px; }
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 var(--space-1);
+    border: 0;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--step-small);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-out),
+                color var(--duration-quick) var(--ease-out),
+                transform var(--duration-quick) var(--ease-out);
+}
+
+/* Wide screens show text labels; icons appear only on narrow screens (see the 800px query). */
+.button .icon { display: none; width: 18px; height: 18px; flex: none; }
+
+.button:hover {
+    background: var(--surface-raised);
+    color: var(--text);
+}
+
+.button:active { transform: scale(0.97); }
+.button:disabled { opacity: 0.6; cursor: progress; }
+
+.button[aria-pressed="true"] {
+    background: var(--surface-raised);
+    color: var(--accent);
+}
+
+.button-primary {
+    padding: 0 var(--space-2);
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 600;
+}
+
+.button-primary:hover {
+    background: var(--accent);
+    color: var(--accent-text);
+}
+
+.overflow-menu { position: relative; }
+
+/* The trigger is an icon at every width: the dots are the label. */
+.button.menu-trigger .icon { display: block; }
+
+.menu {
+    position: absolute;
+    top: calc(100% + var(--space-quarter));
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-quarter);
+    min-width: 208px;
+    padding: var(--space-quarter);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-menu);
+    opacity: 0;
+    transform: scale(0.95);
+    transform-origin: top right;
+    pointer-events: none;
+    transition: opacity var(--duration-quick) var(--ease-out),
+                transform var(--duration-quick) var(--ease-out);
+}
+
+.menu[hidden] { display: none; }
+
+.menu.is-open {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    width: 100%;
+    min-height: 32px;
+    padding: 0 var(--space-1);
+    border: 0;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: var(--step-small);
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-out),
+                transform var(--duration-quick) var(--ease-out);
+}
+
+.menu-item:hover { background: var(--bg); }
+.menu-item:active { transform: scale(0.97); }
+.menu-item .icon { width: 16px; height: 16px; flex: none; color: var(--text-muted); }
+.menu-item:hover .icon { color: var(--text); }
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-quarter) var(--space-3);
+    padding: var(--space-quarter) var(--space-2);
+    background: var(--surface);
+}
+
+.toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-quarter);
+}
+
+.toolbar .button { min-width: 32px; }
+
+.status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-quarter) var(--space-3);
+    padding: var(--space-quarter) var(--space-2);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: var(--step-small);
+    font-variant-numeric: tabular-nums;
+}
+
+.status-bar #saveStatus { margin-left: auto; }
+
+.notice { color: var(--accent); }
+.notice.is-error { color: var(--danger); }
+
+@media (max-width: 800px) {
+    .button .icon { display: block; }
+    .button-label { display: none; }
+    .segmented [data-view-mode="split"] { display: none; }
+    .file-name-input { width: 100%; }
+    .status-bar #saveStatus { margin-left: 0; }
+}
+
+@media (pointer: coarse) {
+    .button,
+    .file-name-input { min-height: 40px; }
+    .segmented .button { min-height: 32px; }
+    .toolbar .button { min-width: 40px; }
+}

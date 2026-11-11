@@ -1,0 +1,46 @@
+.paper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 720px;
+    background: var(--surface);
+    color: var(--text);
+    pointer-events: none;
+}
+
+.paper .markdown-body { max-width: none; padding: 0; }
+
+body.standalone {
+    display: block;
+    height: auto;
+    overflow: auto;
+    background: var(--surface);
+}
+
+@media print {
+    body {
+        display: block;
+        height: auto;
+        overflow: visible;
+        background: var(--surface);
+    }
+
+    .app-header,
+    .toolbar,
+    .editor-pane,
+    .divider,
+    .status-bar { display: none !important; }
+
+    .workspace { display: block; border: 0; }
+    .preview-pane { display: block !important; overflow: visible; }
+    .markdown-body { max-width: none; padding: 0; }
+    .markdown-body pre,
+    .markdown-body table,
+    .markdown-body blockquote,
+    .markdown-body .katex-display,
+    .markdown-body img { break-inside: avoid; }
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3 { break-after: avoid; }
+}
