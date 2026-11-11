@@ -54,13 +54,15 @@
     color: var(--text-muted);
 }
 
-/* Big accent quote mark, top right; decorative, so it is never selectable. */
+/* Big accent quote mark, top right; decorative, so it is never selectable.
+   Google Sans is imported in index.html and used here only — Inter stays the body font. */
 .markdown-body blockquote::after {
     content: "\201D";
     position: absolute;
     top: var(--space-quarter);
     right: var(--space-1);
     color: var(--accent);
+    font-family: "Google Sans", var(--font-body);
     font-size: var(--step-3);
     font-style: italic; /* unslop-ignore ITALIC user explicitly asked for an italic quote mark */
     line-height: 1;
