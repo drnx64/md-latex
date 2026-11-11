@@ -57,3 +57,14 @@
 }
 
 .workspace.is-dropping .editor-pane { outline: 2px dashed var(--accent); outline-offset: -8px; }
+
+/* Content swaps (tab change, view change) settle in instead of jumping. */
+.workspace.is-swapping .editor-pane,
+.workspace.is-swapping .preview-pane {
+    animation: pane-swap var(--duration-base) var(--ease-out);
+}
+
+@keyframes pane-swap {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}

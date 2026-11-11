@@ -68,8 +68,9 @@
             isOpen = false;
             trigger.setAttribute("aria-expanded", "false");
             menu.classList.remove("is-open");
-            // Hide once the 150ms close transition has finished; pointer-events are already off.
-            window.setTimeout(() => { if (!isOpen) menu.hidden = true; }, 150);
+            // Hide once the 120ms exit transition has landed; pointer-events are already off.
+            const exitMs = App.reducedMotionQuery.matches ? 0 : App.EXIT_ANIMATION_MS;
+            window.setTimeout(() => { if (!isOpen) menu.hidden = true; }, exitMs);
             if (returnFocus) trigger.focus();
         }
 

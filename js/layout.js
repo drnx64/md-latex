@@ -16,13 +16,23 @@
         return narrowScreenQuery.matches && state.viewMode === "split" ? "edit" : state.viewMode;
     }
 
+    let hasAppliedViewMode = false;
+
     function applyViewMode() {
         const effectiveMode = getEffectiveViewMode();
+        const didChange = elements.workspace.dataset.view !== effectiveMode;
         elements.workspace.dataset.view = effectiveMode;
 
         elements.viewModeButtons.forEach((button) => {
             button.setAttribute("aria-pressed", String(button.dataset.viewMode === effectiveMode));
         });
+
+        // The first run is the boot: the initial layout appears without animation
+        // (slop #84/#90). Later changes crossfade the panes in.
+        if (hasAppliedViewMode && didChange) {
+            App.replayClass(elements.workspace, "is-swapping");
+        }
+        hasAppliedViewMode = true;
     }
 
     function setViewMode(viewMode) {
@@ -102,7 +112,20 @@
 
     function toggleTheme() {
         const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+
+        // Crossfade: hold the transition class on <html>, reflow once so the
+        // transition has a start state, then swap the tokens. Reduced motion
+        // keeps instant swaps (the CSS block is scoped to no-preference).
+        window.clearTimeout(state.themeSwapTimer);
+        document.documentElement.classList.remove("theme-swap");
+        void document.documentElement.offsetWidth;
+        document.documentElement.classList.add("theme-swap");
+        state.themeSwapTimer = window.setTimeout(() => {
+            document.documentElement.classList.remove("theme-swap");
+        }, App.THEME_SWAP_MS);
+
         applyTheme(nextTheme);
+        App.replayClass(elements.themeButton, "is-icon-swap");
         App.writeStorage(STORAGE_KEYS.theme, nextTheme);
     }
 

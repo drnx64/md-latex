@@ -47,5 +47,6 @@ Loaded from CDN: marked 12.0.2, DOMPurify 3.1.6, KaTeX 0.16.11 (JavaScript only 
 - One accent color (amber), dark-first, all styling from tokens in `css/tokens.css`
 - Tables wrap at the measure; when content still overflows, only the horizontal scrollbar bar is hidden — scrolling still works. Code blocks and display math follow the same rule, and the preview pane itself can no longer draw a bar
 - The header groups by workflow (document → workspace → output) with hairline dividers; text labels on wide screens, icon-only at 800px and below
+- Motion is state-change only (no page-load intro): tabs grow in and collapse out, panes crossfade on view/tab switches, menus exit 20% faster than they enter, themes crossfade with the sun/moon swap, notices fade in and out — token-timed (120/150/200ms) and fully disabled under `prefers-reduced-motion`
 - KaTeX fonts self-hosted in `vendor/katex/` (20 woff2 files)
 - The `unslop-check` script reports no findings at P0, P1, or P2

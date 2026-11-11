@@ -14,6 +14,10 @@ window.App = {
     RENDER_DELAY_MS: 120,
     AUTOSAVE_DELAY_MS: 500,
     NOTICE_DURATION_MS: 4000,
+    // Motion timings: each must outlast the matching CSS duration it waits on.
+    NOTICE_EXIT_MS: 140,
+    EXIT_ANIMATION_MS: 140,
+    THEME_SWAP_MS: 260,
     MIN_SPLIT_PERCENT: 20,
     MAX_SPLIT_PERCENT: 80,
     DIVIDER_KEY_STEP_PERCENT: 2,
@@ -37,6 +41,7 @@ window.App = {
     LIST_LINE_PATTERN: /^(\s*)([-*+]|\d+\.)\s(\[[ xX]\]\s)?(.*)$/,
 
     narrowScreenQuery: window.matchMedia("(max-width: 800px)"),
+    reducedMotionQuery: window.matchMedia("(prefers-reduced-motion: reduce)"),
 
     state: {
         fileName: "untitled.md",
@@ -47,6 +52,8 @@ window.App = {
         renderTimer: null,
         autosaveTimer: null,
         noticeTimer: null,
+        noticeLeaveTimer: null,
+        themeSwapTimer: null,
         scrollSource: null,
     },
 

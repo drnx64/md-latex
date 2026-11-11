@@ -57,6 +57,7 @@
             const isActive = tab.id === state.activeTabId;
             const wrapper = document.createElement("div");
             wrapper.className = isActive ? "tab is-active" : "tab";
+            wrapper.dataset.tabId = tab.id;
 
             const tabButton = document.createElement("button");
             tabButton.type = "button";
@@ -98,6 +99,7 @@
         restorePreviewScroll();
         App.updateTextLevelIndicator();
         renderTabs();
+        App.replayClass(elements.workspace, "is-swapping");
         App.scheduleAutosave();
     }
 
@@ -120,6 +122,12 @@
         restorePreviewScroll();
         App.updateTextLevelIndicator();
         renderTabs();
+        App.replayClass(elements.workspace, "is-swapping");
+
+        // The newest tab grows in from nothing.
+        const tabElement = elements.tabs.querySelector(`.tab[data-tab-id="${tab.id}"]`);
+        if (tabElement) tabElement.classList.add("is-entering");
+
         App.scheduleAutosave();
         elements.editor.focus();
     }
@@ -140,6 +148,9 @@
         }
 
         const focusWasInTabs = elements.tabs.contains(document.activeElement);
+        const tabElement = elements.tabs.querySelector(`.tab[data-tab-id="${tabId}"]`);
+        const exitMs = App.reducedMotionQuery.matches ? 0 : App.EXIT_ANIMATION_MS;
+
         if (isActive) captureTabState(tab);
         state.tabs.splice(index, 1);
 
@@ -170,6 +181,17 @@
                 : (state.tabs[Math.min(index, state.tabs.length - 1)] || getActiveTab()).id;
             const focusTarget = elements.tabs.querySelector(`.tab-button[data-tab-id="${focusId}"]`);
             if (focusTarget) focusTarget.focus();
+        }
+
+        // renderTabs rebuilt the strip, so the closing entry outlives the
+        // rebuild: re-insert it in place and let it collapse out of the row.
+        if (tabElement && exitMs > 0) {
+            tabElement.classList.remove("is-active");
+            const anchor = elements.tabs.children[index] || null;
+            elements.tabs.insertBefore(tabElement, anchor);
+            tabElement.style.setProperty("--tab-out-width", `${tabElement.offsetWidth}px`);
+            tabElement.classList.add("is-leaving");
+            window.setTimeout(() => tabElement.remove(), exitMs);
         }
     }
 

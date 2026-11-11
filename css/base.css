@@ -33,6 +33,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
         animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
     }
 }

@@ -40,7 +40,10 @@
     --step-3: 1.953rem;
 
     --duration-quick: 150ms;
+    --duration-base: 200ms;
+    --duration-exit: 120ms;
     --ease-out: cubic-bezier(0.2, 0, 0, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
 
     --bg: #17181a;
     --surface: #1e2023;
