@@ -19,7 +19,90 @@
     min-height: 0;
 }
 
-.editor-pane { background: var(--bg); }
+.editor-pane { position: relative; background: var(--bg); }
+
+/* Find & replace overlays the editor's top-right corner — no left sidebar,
+   no layout shift while searching. */
+.find-panel {
+    position: absolute;
+    top: var(--space-1);
+    right: var(--space-2);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-quarter);
+    padding: var(--space-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--surface);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.find-panel[hidden] { display: none; }
+
+.find-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-quarter);
+}
+
+.find-input {
+    width: min(240px, 40vw);
+    height: 30px;
+    padding: 0 var(--space-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--step-small);
+}
+
+.find-input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.find-count {
+    min-width: 64px;
+    color: var(--text-muted);
+    font-size: var(--step-small);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.find-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 var(--space-quarter);
+    border: 1px solid transparent;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--step-small);
+    cursor: pointer;
+    transition: background-color var(--duration-quick) var(--ease-out);
+}
+
+.find-button:hover { background: var(--bg); color: var(--text); }
+.find-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.find-button[aria-pressed="true"] {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.find-button-text { min-width: auto; padding: 0 var(--space-1); }
+
+@media (max-width: 800px) {
+    .find-panel { left: var(--space-2); right: var(--space-2); }
+    .find-input { width: 100%; flex: 1; min-width: 0; }
+}
 
 .editor {
     display: block;

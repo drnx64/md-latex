@@ -210,9 +210,29 @@ $$`, 18, 18),
             return;
         }
 
+        if (event.key === "Escape" && state.isFindOpen) {
+            event.preventDefault();
+            App.closeFind();
+            return;
+        }
+
         if (!hasModifier || event.altKey) return;
 
-        const shortcutAction = SHORTCUT_ACTIONS[event.key.toLowerCase()];
+        const key = event.key.toLowerCase();
+
+        // Find and replace route first: they must work while typing in the editor.
+        if (key === "f") {
+            event.preventDefault();
+            App.openFind();
+            return;
+        }
+        if (key === "h") {
+            event.preventDefault();
+            App.toggleReplace();
+            return;
+        }
+
+        const shortcutAction = SHORTCUT_ACTIONS[key];
         if (!shortcutAction) return;
 
         event.preventDefault();
@@ -224,8 +244,17 @@ $$`, 18, 18),
         const hasModifier = event.ctrlKey || event.metaKey;
         if (!hasModifier || event.altKey || event.target === elements.editor) return;
 
+        // The find panel runs its own Ctrl+F/Ctrl+H on its inputs.
+        if (elements.findPanel && elements.findPanel.contains(event.target)) return;
+
         const key = event.key.toLowerCase();
-        if (key === "s") {
+        if (key === "f") {
+            event.preventDefault();
+            App.openFind();
+        } else if (key === "h") {
+            event.preventDefault();
+            App.toggleReplace();
+        } else if (key === "s") {
             event.preventDefault();
             App.downloadMarkdown();
         } else if (key === "o") {

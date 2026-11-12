@@ -121,6 +121,21 @@
 
 <main class="workspace" id="workspace" data-view="split">
     <section class="editor-pane" aria-label="Markdown editor">
+        <div class="find-panel" id="findPanel" role="search" aria-label="Find and replace" hidden>
+            <div class="find-row">
+                <input type="text" class="find-input" id="findInput" placeholder="Find in document" aria-label="Find" autocomplete="off" spellcheck="false">
+                <span class="find-count" id="findCount" role="status" aria-live="polite"></span>
+                <button type="button" class="find-button" id="findCaseButton" aria-pressed="false" aria-label="Match case" title="Match case">Aa</button>
+                <button type="button" class="find-button" id="findPrevButton" aria-label="Previous match" title="Previous match (Shift+Enter)">↑</button>
+                <button type="button" class="find-button" id="findNextButton" aria-label="Next match" title="Next match (Enter)">↓</button>
+                <button type="button" class="find-button" id="findCloseButton" aria-label="Close find" title="Close (Esc)">✕</button>
+            </div>
+            <div class="find-row find-replace-row" id="findReplaceRow" hidden>
+                <input type="text" class="find-input" id="replaceInput" placeholder="Replace with" aria-label="Replace with" autocomplete="off" spellcheck="false">
+                <button type="button" class="find-button find-button-text" id="findReplaceButton" title="Replace current match">Replace</button>
+                <button type="button" class="find-button find-button-text" id="findReplaceAllButton" title="Replace all matches (Ctrl+Enter)">All</button>
+            </div>
+        </div>
         <textarea id="editor" class="editor" aria-label="Markdown source" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea>
     </section>
     <div id="divider" class="divider" role="separator" aria-orientation="vertical" aria-label="Resize editor and preview" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
@@ -217,6 +232,7 @@ def moment(force, distance):
 <script src="js/documents.js"></script>
 <script src="js/export.js"></script>
 <script src="js/editor.js"></script>
+<script src="js/find.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/app.js"></script>
 </body>

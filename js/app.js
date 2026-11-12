@@ -202,6 +202,7 @@
 
         bindDropdown(elements.overflowButton, elements.overflowMenu, { focusTriggerOnSelect: true });
         bindPaperSizeMenu();
+        App.bindFindPanel();
         bindDropdown(elements.headingMenuButton, elements.headingMenu, { scrollContainer: elements.toolbar });
         bindDropdown(elements.listsMenuButton, elements.listsMenu, { scrollContainer: elements.toolbar });
         bindDropdown(elements.insertMenuButton, elements.insertMenu, { scrollContainer: elements.toolbar });
