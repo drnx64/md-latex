@@ -100,6 +100,9 @@
     padding: var(--space-1) var(--space-2);
     border-bottom: 1px solid var(--border);
     text-align: left;
+    /* Long words, URLs, and code break inside the cell so the table always
+       fits its container — PDF pages have no horizontal scroll to fall back on. */
+    overflow-wrap: anywhere;
 }
 
 .markdown-body th { font-weight: 600; }

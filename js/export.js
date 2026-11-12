@@ -12,6 +12,13 @@
         "css/export.css",
     ];
 
+    // A4 in mm, margins [top, left, bottom, right]. html2pdf clamps the capture
+    // canvas to the page's inner width, so the paper must be exactly that wide
+    // or content along the right edge is cut off in the PDF.
+    const PAGE_WIDTH_MM = 210;
+    const PAGE_MARGINS_MM = [14, 14, 16, 14];
+    const PAPER_WIDTH_PX = ((PAGE_WIDTH_MM - PAGE_MARGINS_MM[1] - PAGE_MARGINS_MM[3]) * 96) / 25.4;
+
     // file:// pages cannot fetch local files, so fall back to the loaded rules.
     async function loadAppStyles() {
         try {
@@ -79,6 +86,8 @@
 
         const paper = document.createElement("div");
         paper.className = "paper";
+        // Inline width so the PDF page margins stay the single source of truth.
+        paper.style.width = `${PAPER_WIDTH_PX}px`;
 
         const body = document.createElement("div");
         body.className = "markdown-body";
@@ -89,6 +98,7 @@
 
         paper.appendChild(body);
         host.appendChild(paper);
+        host.style.width = paper.style.width;
         return { host, paper };
     }
 
@@ -109,7 +119,7 @@
             if (document.fonts?.ready) await document.fonts.ready;
 
             await window.html2pdf().set({
-                margin: [14, 14, 16, 14],
+                margin: PAGE_MARGINS_MM,
                 filename: `${App.getBaseFileName()}.pdf`,
                 image: { type: "jpeg", quality: 0.98 },
                 html2canvas: {

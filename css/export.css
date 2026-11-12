@@ -1,24 +1,34 @@
 /* html2canvas returns a zero-height canvas for fixed/absolute capture targets,
    which produced a blank PDF. The host is fixed and off-screen; the paper
-   itself stays static inside it so html2canvas can measure its full height. */
+   itself stays static inside it so html2canvas can measure its full height.
+   688px = A4 (210mm) minus the export.js side margins, at CSS's 96dpi —
+   export.js sets this inline from PAGE_MARGINS_MM, so that stays the truth. */
 .paper-host {
     position: fixed;
     top: 0;
     left: -10000px;
     z-index: -1;
-    width: 720px;
+    width: 688px;
     pointer-events: none;
 }
 
 .paper {
     position: static;
-    width: 720px;
+    width: 688px;
     background: var(--surface);
     color: var(--text);
     pointer-events: none;
 }
 
 .paper .markdown-body { max-width: none; padding: 0; }
+
+/* PDF and print have no horizontal scroll, so long code lines wrap
+   instead of running off the right edge of the page. */
+.paper .markdown-body pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-x: visible;
+}
 
 body.standalone {
     display: block;
@@ -45,6 +55,11 @@ body.standalone {
     .workspace { display: block; border: 0; }
     .preview-pane { display: block !important; overflow: visible; }
     .markdown-body { max-width: none; padding: 0; }
+    .markdown-body pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        overflow-x: visible;
+    }
     .markdown-body pre,
     .markdown-body table,
     .markdown-body blockquote,
