@@ -102,6 +102,35 @@
         return { host, paper };
     }
 
+    // PDF pages and print paper cannot scroll, so table content that cannot
+    // wrap (KaTeX math and images are unbreakable inline boxes) must shrink
+    // until the table fits — otherwise auto layout pushes min-content past the
+    // page width and the right edge gets cropped.
+    // Transitions are disabled for the fit target (export.css): a running
+    // transition makes getComputedStyle report the old value, so the loop's
+    // re-reads would never see the shrink it just applied.
+    function fitTablesToPage(root) {
+        root.querySelectorAll("table").forEach((table) => {
+            for (let pass = 0; pass < 20; pass += 1) {
+                const overflow = table.scrollWidth - table.clientWidth;
+                if (overflow <= 1) return;
+                const unbreakable = table.querySelectorAll(".katex, img");
+                if (unbreakable.length === 0) return;
+                const factor = table.clientWidth / table.scrollWidth;
+                unbreakable.forEach((element) => {
+                    if (element.tagName === "IMG") {
+                        const width = element.getBoundingClientRect().width;
+                        element.style.width = `${Math.max(8, width * factor)}px`;
+                        element.style.height = "auto";
+                    } else {
+                        const size = Number.parseFloat(window.getComputedStyle(element).fontSize);
+                        element.style.fontSize = `${Math.max(6, size * factor)}px`;
+                    }
+                });
+            }
+        });
+    }
+
     async function exportPdf() {
         if (!window.html2pdf) {
             App.showNotice("The PDF library did not load. Check your connection and reload.", true);
@@ -117,6 +146,7 @@
 
         try {
             if (document.fonts?.ready) await document.fonts.ready;
+            fitTablesToPage(paper);
 
             await window.html2pdf().set({
                 margin: PAGE_MARGINS_MM,
@@ -156,11 +186,16 @@
     function handleBeforePrint() {
         document.documentElement.dataset.printRestoreTheme = document.documentElement.dataset.theme;
         document.documentElement.dataset.theme = "light";
+        document.body.classList.add("is-print-fitting");
+        fitTablesToPage(elements.preview);
     }
 
     function handleAfterPrint() {
         document.documentElement.dataset.theme = document.documentElement.dataset.printRestoreTheme || "dark";
         delete document.documentElement.dataset.printRestoreTheme;
+        document.body.classList.remove("is-print-fitting");
+        // Re-rendering drops the inline fit styles the print pass added.
+        App.renderPreview();
     }
 
     Object.assign(App, {

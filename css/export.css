@@ -22,6 +22,21 @@
 
 .paper .markdown-body { max-width: none; padding: 0; }
 
+/* PDF and print have no horizontal scroll, so the preview's scroll container
+   must not clip tables either — export.js shrinks unbreakable cell content
+   to fit the page before capture/print. */
+.paper .markdown-body table { overflow-x: visible; }
+
+/* The table-fit pass re-reads computed styles in a tight loop; a running
+   transition (e.g. the reduced-motion override) would report stale values and
+   the loop would never see its own shrink apply. */
+.paper,
+.paper * { transition: none !important; }
+
+/* Same for the in-place fit that runs right before print. */
+body.is-print-fitting,
+body.is-print-fitting * { transition: none !important; }
+
 /* PDF and print have no horizontal scroll, so long code lines wrap
    instead of running off the right edge of the page. */
 .paper .markdown-body pre {
@@ -55,6 +70,7 @@ body.standalone {
     .workspace { display: block; border: 0; }
     .preview-pane { display: block !important; overflow: visible; }
     .markdown-body { max-width: none; padding: 0; }
+    .markdown-body table { overflow-x: visible; }
     .markdown-body pre {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
