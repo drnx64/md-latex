@@ -12,12 +12,34 @@
         "css/export.css",
     ];
 
-    // A4 in mm, margins [top, left, bottom, right]. html2pdf clamps the capture
-    // canvas to the page's inner width, so the paper must be exactly that wide
-    // or content along the right edge is cut off in the PDF.
-    const PAGE_WIDTH_MM = 210;
+    // Paper formats in mm. The jsPDF page size and the capture paper width
+    // both derive from this map, so the canvas clamp and the page can never
+    // disagree: html2pdf clamps the capture to the page's inner width, and
+    // content along the right edge is cut off if the paper is any wider.
+    const PAGE_SIZES = Object.freeze({
+        a4: { label: "A4", widthMm: 210, heightMm: 297 },
+        letter: { label: "Letter (8.5 × 11)", widthMm: 215.9, heightMm: 279.4 },
+        folio: { label: "Folio / Long (8.5 × 13)", widthMm: 215.9, heightMm: 330.2 },
+        legal: { label: "Legal (8.5 × 14)", widthMm: 215.9, heightMm: 355.6 },
+    });
+    const DEFAULT_PAPER_SIZE = "a4";
+
+    // Margins in mm: [top, left, bottom, right].
     const PAGE_MARGINS_MM = [14, 14, 16, 14];
-    const PAPER_WIDTH_PX = ((PAGE_WIDTH_MM - PAGE_MARGINS_MM[1] - PAGE_MARGINS_MM[3]) * 96) / 25.4;
+
+    function getPaperSizeKey() {
+        const saved = App.readStorage(App.STORAGE_KEYS.paperSize);
+        return PAGE_SIZES[saved] ? saved : DEFAULT_PAPER_SIZE;
+    }
+
+    function getPaperSize() {
+        return PAGE_SIZES[getPaperSizeKey()];
+    }
+
+    function getPaperWidthPx() {
+        const { widthMm } = getPaperSize();
+        return ((widthMm - PAGE_MARGINS_MM[1] - PAGE_MARGINS_MM[3]) * 96) / 25.4;
+    }
 
     // file:// pages cannot fetch local files, so fall back to the loaded rules.
     async function loadAppStyles() {
@@ -86,8 +108,8 @@
 
         const paper = document.createElement("div");
         paper.className = "paper";
-        // Inline width so the PDF page margins stay the single source of truth.
-        paper.style.width = `${PAPER_WIDTH_PX}px`;
+        // Inline width so the page margins stay the single source of truth.
+        paper.style.width = `${getPaperWidthPx()}px`;
 
         const body = document.createElement("div");
         body.className = "markdown-body";
@@ -148,6 +170,7 @@
             if (document.fonts?.ready) await document.fonts.ready;
             fitTablesToPage(paper);
 
+            const paperSize = getPaperSize();
             await window.html2pdf().set({
                 margin: PAGE_MARGINS_MM,
                 filename: `${App.getBaseFileName()}.pdf`,
@@ -160,7 +183,7 @@
                     scrollY: 0,
                     backgroundColor: getComputedStyle(paper).backgroundColor,
                 },
-                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                jsPDF: { unit: "mm", format: [paperSize.widthMm, paperSize.heightMm], orientation: "portrait" },
                 pagebreak: {
                     mode: ["css", "legacy"],
                     avoid: ["pre", "table", "tr", "blockquote", "img", ".katex-display", "h1", "h2", "h3", "h4"],
@@ -204,5 +227,7 @@
         printDocument,
         handleBeforePrint,
         handleAfterPrint,
+        PAGE_SIZES,
+        getPaperSizeKey,
     });
 })();

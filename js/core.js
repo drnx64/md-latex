@@ -9,6 +9,7 @@ window.App = {
         splitPercent: "markdownLatexEditor.splitPercent.v1",
         viewMode: "markdownLatexEditor.viewMode.v1",
         syncScroll: "markdownLatexEditor.syncScroll.v1",
+        paperSize: "markdownLatexEditor.paperSize.v1",
     }),
 
     RENDER_DELAY_MS: 120,

@@ -36,6 +36,30 @@
         }
     }
 
+    // Paper-size radios in the overflow menu: one checked at a time, saved for
+    // the next session, applied by export.js on the next PDF.
+    function bindPaperSizeMenu() {
+        const items = [...document.querySelectorAll("[data-paper-size]")];
+
+        function applySelection(key) {
+            items.forEach((item) => {
+                item.setAttribute("aria-checked", String(item.dataset.paperSize === key));
+            });
+        }
+
+        items.forEach((item) => {
+            item.addEventListener("click", () => {
+                const key = item.dataset.paperSize;
+                if (!App.PAGE_SIZES[key]) return;
+                App.writeStorage(STORAGE_KEYS.paperSize, key);
+                applySelection(key);
+                App.showNotice(`Paper size: ${App.PAGE_SIZES[key].label}`);
+            });
+        });
+
+        applySelection(App.getPaperSizeKey());
+    }
+
     // One implementation for every menu (header overflow + toolbar dropdowns).
     // Fixed-position menus are pinned against their trigger so the toolbar's
     // horizontal scroll container cannot clip them.
@@ -177,6 +201,7 @@
         elements.exportPdfButton.addEventListener("click", App.exportPdf);
 
         bindDropdown(elements.overflowButton, elements.overflowMenu, { focusTriggerOnSelect: true });
+        bindPaperSizeMenu();
         bindDropdown(elements.headingMenuButton, elements.headingMenu, { scrollContainer: elements.toolbar });
         bindDropdown(elements.listsMenuButton, elements.listsMenu, { scrollContainer: elements.toolbar });
         bindDropdown(elements.insertMenuButton, elements.insertMenu, { scrollContainer: elements.toolbar });

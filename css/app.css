@@ -239,6 +239,15 @@
   background: var(--border);
 }
 
+/* Paper-size radios: the check marks the active format. */
+.menu-item-radio[aria-checked="true"]::after {
+  content: "✓";
+  margin-left: auto;
+  padding-left: var(--space-2);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* Chrome-style document tabs: content-sized strip, active tab lit with an
    amber rail; excess width scrolls sideways (bar hidden) like the toolbar. */
 .tab-bar {
