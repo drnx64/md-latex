@@ -28,6 +28,12 @@
                 }
             });
         }
+
+        // Language components are lazy-loaded from the local vendor folder so
+        // syntax highlighting works with no network (the default points at a CDN).
+        if (window.Prism?.plugins?.autoloader) {
+            window.Prism.plugins.autoloader.components_path = "vendor/prism/components/";
+        }
     }
 
     // One implementation for every menu (header overflow + toolbar dropdowns).
