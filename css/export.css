@@ -1,8 +1,17 @@
-.paper {
-    position: absolute;
+/* html2canvas returns a zero-height canvas for fixed/absolute capture targets,
+   which produced a blank PDF. The host is fixed and off-screen; the paper
+   itself stays static inside it so html2canvas can measure its full height. */
+.paper-host {
+    position: fixed;
     top: 0;
-    left: 0;
+    left: -10000px;
     z-index: -1;
+    width: 720px;
+    pointer-events: none;
+}
+
+.paper {
+    position: static;
     width: 720px;
     background: var(--surface);
     color: var(--text);

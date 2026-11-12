@@ -72,6 +72,11 @@
     }
 
     function buildPaperElement() {
+        // The fixed off-screen host hides the paper without making the capture
+        // target itself fixed/absolute, which html2canvas cannot measure.
+        const host = document.createElement("div");
+        host.className = "paper-host";
+
         const paper = document.createElement("div");
         paper.className = "paper";
 
@@ -83,7 +88,8 @@
         body.querySelectorAll(".katex-mathml").forEach((mathml) => mathml.remove());
 
         paper.appendChild(body);
-        return paper;
+        host.appendChild(paper);
+        return { host, paper };
     }
 
     async function exportPdf() {
@@ -96,8 +102,8 @@
         elements.exportPdfButton.disabled = true;
         elements.exportPdfButton.setAttribute("aria-busy", "true");
 
-        const paper = buildPaperElement();
-        document.body.appendChild(paper);
+        const { host, paper } = buildPaperElement();
+        document.body.appendChild(host);
 
         try {
             if (document.fonts?.ready) await document.fonts.ready;
@@ -125,7 +131,7 @@
         } catch (error) {
             App.showNotice("PDF export failed. Try Print and save as PDF instead.", true);
         } finally {
-            paper.remove();
+            host.remove();
             elements.exportPdfButton.disabled = false;
             elements.exportPdfButton.removeAttribute("aria-busy");
         }
