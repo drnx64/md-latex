@@ -5,11 +5,21 @@
 
     let tabSequence = 0;
 
+    // Names the app generates itself: a tab with one of these follows the
+    // document's first H1 until the user renames it to something else.
+    const AUTO_TITLE_NAME_PATTERN = /^untitled(\s*\d+)?\.md$/i;
+
+    function isAutoTitleName(fileName) {
+        return AUTO_TITLE_NAME_PATTERN.test(fileName);
+    }
+
     function createTab(fileName, content) {
         tabSequence += 1;
+        const normalized = App.ensureMarkdownExtension(fileName);
         return {
             id: `tab-${Date.now().toString(36)}-${tabSequence}`,
-            fileName: App.ensureMarkdownExtension(fileName),
+            fileName: normalized,
+            autoTitle: isAutoTitleName(normalized),
             content,
             selectionStart: 0,
             selectionEnd: 0,
@@ -84,6 +94,7 @@
 
         const activeButton = container.querySelector(".tab.is-active .tab-button");
         if (activeButton) activeButton.scrollIntoView({ block: "nearest", inline: "nearest" });
+        updateTabFade();
     }
 
     function activateTab(tabId) {
@@ -217,10 +228,59 @@
         state.fileName = fileName;
 
         const activeTab = getActiveTab();
-        if (activeTab) activeTab.fileName = fileName;
+        if (activeTab) {
+            activeTab.fileName = fileName;
+            // Renaming to a generated name re-enables the heading follow;
+            // any other name is a deliberate choice and locks it.
+            activeTab.autoTitle = isAutoTitleName(fileName);
+        }
 
         renderTabs();
         App.scheduleAutosave();
+    }
+
+    // Names the active tab from its first H1 while the tab still carries a
+    // generated name. Called after every preview render; it exits before
+    // writing anything when the name already matches, so it cannot loop.
+    function updateAutoTitle() {
+        const tab = getActiveTab();
+        if (!tab || !tab.autoTitle) return;
+
+        const heading = App.firstHeading(elements.editor.value);
+        const desired = heading
+            ? App.ensureMarkdownExtension(heading)
+            : (isAutoTitleName(state.fileName) ? state.fileName : nextUntitledName());
+
+        if (desired === state.fileName) return;
+        state.fileName = desired;
+        elements.fileNameInput.value = desired;
+        tab.fileName = desired;
+        renderTabs();
+        App.scheduleAutosave();
+    }
+
+    // Plain vertical wheel over the strip scrolls it sideways; shift+wheel
+    // and trackpad horizontal deltas stay on the browser's native path.
+    function handleTabsWheel(event) {
+        if (event.deltaY === 0 && event.deltaX === 0) return;
+        if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+        const scroller = elements.tabs;
+        if (scroller.scrollWidth <= scroller.clientWidth) return;
+        event.preventDefault();
+        let scale = 1;
+        if (event.deltaMode === 1) scale = 24;
+        else if (event.deltaMode === 2) scale = scroller.clientWidth;
+        scroller.scrollLeft += event.deltaY * scale;
+    }
+
+    // Edge fades show only while the strip overflows on that side.
+    function updateTabFade() {
+        const scroller = elements.tabs;
+        const bar = scroller.closest(".tab-bar");
+        if (!bar) return;
+        const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+        bar.classList.toggle("has-fade-left", scroller.scrollLeft > 1);
+        bar.classList.toggle("has-fade-right", scroller.scrollLeft < maxScroll - 1);
     }
 
     function handleTabsClick(event) {
@@ -300,6 +360,7 @@
         const toScroll = (value) => (Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0);
 
         const tab = createTab(typeof rawTab.fileName === "string" ? rawTab.fileName : "", rawTab.content);
+        if (typeof rawTab.autoTitle === "boolean") tab.autoTitle = rawTab.autoTitle;
         tab.selectionStart = toOffset(rawTab.selectionStart, 0);
         tab.selectionEnd = toOffset(rawTab.selectionEnd, tab.selectionStart);
         tab.editorScrollTop = toScroll(rawTab.editorScrollTop);
@@ -364,6 +425,7 @@
         if (activeTab) {
             activeTab.content = content;
             activeTab.fileName = fileName;
+            activeTab.autoTitle = isAutoTitleName(App.ensureMarkdownExtension(fileName));
             activeTab.selectionStart = 0;
             activeTab.selectionEnd = 0;
             activeTab.editorScrollTop = 0;
@@ -384,12 +446,6 @@
             "Replace the current document? The current text will be overwritten.",
             "Replace",
         );
-    }
-
-    async function createNewDocument() {
-        if (!(await confirmReplaceDocument())) return;
-        setDocument("", "untitled.md");
-        elements.editor.focus();
     }
 
     async function openFile(file) {
@@ -419,13 +475,15 @@
         scheduleAutosave,
         saveDocument,
         handleEditorInput,
-        createNewDocument,
         openFile,
         downloadMarkdown,
         loadTabs,
         renderTabs,
         restorePreviewScroll,
         renameActiveTab,
+        updateAutoTitle,
+        handleTabsWheel,
+        updateTabFade,
         createNewTab,
         handleTabsClick,
         handleTabsAuxClick,

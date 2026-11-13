@@ -25,7 +25,8 @@
     // raw LaTeX -> MathML (Temml) -> OMML (mathml2omml) -> docx XML node.
     function mathRun(tex, display) {
         try {
-            const mathml = window.temml.renderToString(tex, { xml: true, displayMode: display });
+            // Same transform as the preview: auto-& and \vspace → strut.
+            const mathml = window.temml.renderToString(App.prepareMath(tex), { xml: true, displayMode: display });
             let omml = window.__mml2omml.mml2omml(mathml).trim();
             if (display && !omml.includes("oMathPara")) {
                 const ns = /xmlns:m="[^"]+"/.exec(omml);

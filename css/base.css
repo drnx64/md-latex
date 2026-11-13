@@ -6,6 +6,10 @@ body {
     display: grid;
     /* header, tab bar, toolbar, workspace, status bar */
     grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    /* Without an explicit column the implicit auto track grows to the tab
+       strip's intrinsic width, pushing the + button off-screen and leaving
+       the strip nothing to scroll. */
+    grid-template-columns: minmax(0, 1fr);
     height: 100dvh;
     overflow: hidden;
     background: var(--bg);

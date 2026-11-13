@@ -22,6 +22,7 @@
 
         if (window.Prism) window.Prism.highlightAllUnder(elements.preview);
         updateStatistics();
+        App.updateAutoTitle();
     }
 
     function scheduleRender() {

@@ -73,7 +73,6 @@ window.App = {
         sampleDocument: document.getElementById("sampleDocument"),
         syncScrollButton: document.getElementById("syncScrollButton"),
         themeButton: document.getElementById("themeButton"),
-        newButton: document.getElementById("newButton"),
         openButton: document.getElementById("openButton"),
         downloadButton: document.getElementById("downloadButton"),
         exportHtmlButton: document.getElementById("exportHtmlButton"),

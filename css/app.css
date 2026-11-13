@@ -257,6 +257,10 @@
   padding: var(--space-quarter) var(--space-2) 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  position: relative;
+  /* Edge-fade source, shared by both strip edges (mirrored with scaleX). */
+  /* unslop-ignore GRADIENT functional scroll affordance: the fade marks where hidden tabs continue past the edge */
+  --tab-fade-image: linear-gradient(to right, var(--surface) 0%, transparent 100%);
 }
 
 .tabs {
@@ -414,6 +418,7 @@
 .tab-new {
   flex: none;
   align-self: center;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -436,6 +441,35 @@
 }
 .tab-new:active {
   transform: scale(0.97);
+}
+
+/* Edge fades: shown only while the strip overflows on that side
+   (has-fade-left / has-fade-right, toggled by updateTabFade). */
+.tab-bar::before,
+.tab-bar.has-fade-right .tab-new::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  background-image: var(--tab-fade-image);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-quick) var(--ease-out);
+}
+
+.tab-bar::before {
+  left: 0;
+}
+
+.tab-bar.has-fade-left::before,
+.tab-bar.has-fade-right .tab-new::before {
+  opacity: 1;
+}
+
+.tab-bar.has-fade-right .tab-new::before {
+  right: 100%;
+  transform: scaleX(-1);
 }
 .tab-new .icon {
   width: 16px;

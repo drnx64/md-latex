@@ -100,9 +100,37 @@
         return ensureMarkdownExtension(state.fileName).replace(/\.[^.]+$/, "");
     }
 
+    // First H1 of the document, outside fenced code, with inline markup
+    // stripped — the source for both the export title and the tab name.
+    function firstHeading(markdownSource) {
+        const lines = markdownSource.split(/\r?\n/);
+        let fenceMarker = null;
+        for (const line of lines) {
+            const fence = /^\s*(`{3,}|~{3,})/.exec(line);
+            if (fence) {
+                if (!fenceMarker) fenceMarker = fence[1][0];
+                else if (fence[1][0] === fenceMarker) fenceMarker = null;
+                continue;
+            }
+            if (fenceMarker) continue;
+            const heading = /^#\s+(.+?)\s*$/.exec(line);
+            if (!heading) continue;
+            const text = heading[1]
+                .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+                .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+                .replace(/`([^`]*)`/g, "$1")
+                .replace(/(\*\*|__)(.*?)\1/g, "$2")
+                .replace(/~~(.*?)~~/g, "$1")
+                .replace(/\*(.*?)\*/g, "$1")
+                .replace(/#+\s*$/, "")
+                .trim();
+            if (text) return text;
+        }
+        return null;
+    }
+
     function getDocumentTitle() {
-        const headingMatch = elements.editor.value.match(/^#\s+(.+)$/m);
-        return headingMatch ? headingMatch[1].trim() : getBaseFileName();
+        return firstHeading(elements.editor.value) || getBaseFileName();
     }
 
     function downloadBlob(blob, downloadName) {
@@ -155,6 +183,7 @@
         closeConfirm,
         ensureMarkdownExtension,
         getBaseFileName,
+        firstHeading,
         getDocumentTitle,
         downloadBlob,
         readStorage,

@@ -180,6 +180,9 @@
         elements.tabs.addEventListener("click", App.handleTabsClick);
         elements.tabs.addEventListener("auxclick", App.handleTabsAuxClick);
         elements.tabs.addEventListener("dblclick", App.handleTabsDoubleClick);
+        elements.tabs.addEventListener("wheel", App.handleTabsWheel, { passive: false });
+        elements.tabs.addEventListener("scroll", App.updateTabFade, { passive: true });
+        window.addEventListener("resize", App.updateTabFade);
         elements.newTabButton.addEventListener("click", App.createNewTab);
         document.addEventListener("keydown", App.handleTabShortcuts);
         window.addEventListener("pagehide", App.saveDocument);
@@ -194,7 +197,6 @@
 
         elements.syncScrollButton.addEventListener("click", App.toggleScrollSync);
         elements.themeButton.addEventListener("click", App.toggleTheme);
-        elements.newButton.addEventListener("click", App.createNewDocument);
         elements.openButton.addEventListener("click", () => elements.fileInput.click());
         elements.downloadButton.addEventListener("click", App.downloadMarkdown);
         elements.exportHtmlButton.addEventListener("click", App.exportHtml);

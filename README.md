@@ -7,9 +7,10 @@ This is a personal project, shared in case it happens to be useful to someone el
 ## Features
 
 - Three view modes — editor, split, preview — with a draggable divider
-- Chrome-style document tabs: several Markdown files open at once, `+` adds one, `×` closes (a tab with text asks first), and each tab keeps its own text, name, caret, and scroll position
+- Chrome-style document tabs: several Markdown files open at once, `+` adds one, `×` closes (a tab with text asks first), and each tab keeps its own text, name, caret, and scroll position; the strip scrolls sideways with the wheel (shift-wheel stays native) and fades the edge that still has hidden tabs
+- The first `# Heading` names the file while it still carries a generated name; renaming the tab by hand keeps your name
 - Two-way scroll sync between editor and preview
-- Math: inline `$x$` / `\(x\)`, block `$$...$$`, and LaTeX environments (`\begin{align}`)
+- Math: inline `$x$` / `\(x\)`, block `$$...$$`, and LaTeX environments (`\begin{align}`); align-family rows line up at their first `=` automatically — no `&` to type — and `\vspace{2em}` adds real space between lines
 - Markdown extras: tables, task lists, strikethrough, fenced code with Prism highlighting
 - Single-row formatting toolbar that never wraps: a joined `B` `I` `S` `</>` segment plus `H1 ▾`, `Lists ▾`, `Insert ▾`, and `Math ▾` dropdowns — the heading trigger follows the caret (H1–H4 or P), and Math carries equation and `\frac`/`\sum`/matrix templates
 - Shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O, Ctrl+F (find), Ctrl+H (find and replace), Ctrl+Alt+T (new tab), Ctrl+Alt+W (close tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
