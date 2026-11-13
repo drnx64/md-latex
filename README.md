@@ -12,10 +12,12 @@ This is a personal project, shared in case it happens to be useful to someone el
 - Math: inline `$x$` / `\(x\)`, block `$$...$$`, and LaTeX environments (`\begin{align}`)
 - Markdown extras: tables, task lists, strikethrough, fenced code with Prism highlighting
 - Single-row formatting toolbar that never wraps: a joined `B` `I` `S` `</>` segment plus `H1 ▾`, `Lists ▾`, `Insert ▾`, and `Math ▾` dropdowns — the heading trigger follows the caret (H1–H4 or P), and Math carries equation and `\frac`/`\sum`/matrix templates
-- Shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O, Ctrl+Alt+T (new tab), Ctrl+Alt+W (close tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
+- Shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O, Ctrl+F (find), Ctrl+H (find and replace), Ctrl+Alt+T (new tab), Ctrl+Alt+W (close tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
+- Find and replace in the editor: match count, match case, Enter / Shift+Enter to step through results, Esc to close
 - Dark and light themes, autosave to browser storage
-- Export: `.md` download, standalone HTML, PDF (html2pdf), print
-- Original SVG icon set with a responsive header: text labels on wide screens, icon-only at 800px and below, and an overflow menu for Download, Export HTML, and Print
+- Export: `.md` download, standalone HTML, Word `.docx` with native editable equations, PDF through the browser's print engine (choose Save as PDF), print
+- Paper sizes for PDF and DOCX: A4, Letter, Folio / Long, Legal
+- Original SVG icon set with a responsive header: text labels on wide screens, icon-only at 800px and below, and an overflow menu for Download, Export HTML, Export .docx, Print, and the paper size
 
 ## Running it
 
@@ -34,14 +36,26 @@ Everything works from `file://` except **Export HTML**: it reads the `css/` file
 |---|---|
 | `index.html` | Markup and script/style wiring |
 | `css/` | `tokens` (design tokens + fonts), `base`, `app` (header/tabs/toolbar/status), `workspace` (panes + divider), `markdown` (rendered content), `export` (paper + print) |
-| `js/` | `core` (namespace + elements), `svg` (icon library), `utils`, `math`, `render`, `documents` (tab strip + storage), `export`, `editor`, `layout`, `app` (boot) |
+| `js/` | `core` (namespace + elements), `svg` (icon library), `utils`, `math`, `render`, `documents` (tab strip + storage), `export`, `docx` (Word export), `editor`, `find`, `layout`, `app` (boot) |
 | `assets/fonts/` | Inter and Bebas Neue as self-hosted woff2, with their SIL Open Font License files |
 | `vendor/katex/` | Self-hosted KaTeX CSS and its woff2 math fonts |
 | `assets/favicon.svg` | App mark |
 
 ## Libraries
 
-Loaded from CDN: marked 12.0.2, DOMPurify 3.1.6, KaTeX 0.16.11 (JavaScript only — its CSS and fonts are local), Prism 1.29.0 with autoloader. PDF export runs on html2pdf 0.10.2 with jsPDF and html2canvas, vendored in `vendor/html2pdf/` — no CDN for the PDF path.
+Everything is vendored locally — the app is fully offline, with one deliberate exception: the Google Sans `@import` for the quote icon.
+
+| Library | Version | Where |
+|---|---|---|
+| marked | 12.0.2 | `vendor/marked/` |
+| DOMPurify | 3.1.6 | `vendor/dompurify/` |
+| KaTeX (JS) | 0.16.11 | `vendor/katex/` (CSS and woff2 fonts too) |
+| Prism + autoloader + 25 components | 1.29.0 | `vendor/prism/` |
+| docx (Word export) | 9.0.2 | `vendor/word/` |
+| Temml (LaTeX → MathML) | 0.10.29 | `vendor/word/` |
+| mathml2omml (MathML → OMML) | 0.5.0 | `vendor/word/` |
+
+PDF export uses the browser's native vector print engine (`window.print()` → Save as PDF): selectable text and web-font math, no canvas and no rasterization. DOCX export parses the raw Markdown/LaTeX source and converts every expression to native Word OMML equations through Temml and mathml2omml — equations stay double-click editable, never images.
 
 ## Design notes
 

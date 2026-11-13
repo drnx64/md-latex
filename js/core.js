@@ -77,6 +77,7 @@ window.App = {
         openButton: document.getElementById("openButton"),
         downloadButton: document.getElementById("downloadButton"),
         exportHtmlButton: document.getElementById("exportHtmlButton"),
+        exportDocxButton: document.getElementById("exportDocxButton"),
         printButton: document.getElementById("printButton"),
         exportPdfButton: document.getElementById("exportPdfButton"),
         overflowButton: document.getElementById("overflowButton"),

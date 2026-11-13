@@ -52,6 +52,7 @@
                 const key = item.dataset.paperSize;
                 if (!App.PAGE_SIZES[key]) return;
                 App.writeStorage(STORAGE_KEYS.paperSize, key);
+                App.updatePageRule();
                 applySelection(key);
                 App.showNotice(`Paper size: ${App.PAGE_SIZES[key].label}`);
             });
@@ -197,6 +198,7 @@
         elements.openButton.addEventListener("click", () => elements.fileInput.click());
         elements.downloadButton.addEventListener("click", App.downloadMarkdown);
         elements.exportHtmlButton.addEventListener("click", App.exportHtml);
+        elements.exportDocxButton.addEventListener("click", App.exportDocx);
         elements.printButton.addEventListener("click", App.printDocument);
         elements.exportPdfButton.addEventListener("click", App.exportPdf);
 

@@ -42,12 +42,13 @@
             <button type="button" class="button" id="themeButton" data-icon="sun" aria-label="Light theme" title="Light theme"><span class="button-label">Light theme</span></button>
         </div>
         <div class="action-group">
-            <button type="button" class="button button-primary" id="exportPdfButton" data-icon="pdf" aria-label="Export PDF" title="Export PDF"><span class="button-label">Export PDF</span></button>
+            <button type="button" class="button button-primary" id="exportPdfButton" data-icon="pdf" aria-label="Export PDF" title="Export PDF — opens the print dialog, choose Save as PDF"><span class="button-label">Export PDF</span></button>
             <div class="overflow-menu">
                 <button type="button" class="button menu-trigger" id="overflowButton" data-icon="more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" title="More actions"></button>
                 <div class="menu" id="overflowMenu" role="menu" aria-label="More actions" hidden>
                     <button type="button" class="menu-item" id="downloadButton" role="menuitem" data-icon="download" title="Download the Markdown source (Ctrl+S)"><span class="menu-label">Download .md</span></button>
                     <button type="button" class="menu-item" id="exportHtmlButton" role="menuitem" data-icon="htmlExport" title="Export HTML"><span class="menu-label">Export HTML</span></button>
+                    <button type="button" class="menu-item" id="exportDocxButton" role="menuitem" data-icon="docx" title="Export Word document with editable equations"><span class="menu-label">Export .docx</span></button>
                     <button type="button" class="menu-item" id="printButton" role="menuitem" data-icon="print" title="Print"><span class="menu-label">Print</span></button>
                     <div class="menu-separator" role="separator"></div>
                     <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="a4" aria-checked="true" title="Paper size: A4"><span class="menu-label">A4</span></button>
@@ -222,7 +223,9 @@ def moment(force, distance):
 <script src="vendor/katex/katex.min.js"></script>
 <script src="vendor/prism/prism-core.min.js"></script>
 <script src="vendor/prism/prism-autoloader.min.js"></script>
-<script src="vendor/html2pdf/html2pdf.bundle.min.js"></script>
+<script src="vendor/word/docx-9.0.2.umd.js"></script>
+<script src="vendor/word/temml-0.10.29.js"></script>
+<script src="vendor/word/mathml2omml-0.5.0.js"></script>
 <!-- Load order: core.js first, app.js last. -->
 <script src="js/core.js"></script>
 <script src="js/svg.js"></script>
@@ -231,6 +234,7 @@ def moment(force, distance):
 <script src="js/render.js"></script>
 <script src="js/documents.js"></script>
 <script src="js/export.js"></script>
+<script src="js/docx.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/find.js"></script>
 <script src="js/layout.js"></script>

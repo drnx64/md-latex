@@ -12,10 +12,9 @@
         "css/export.css",
     ];
 
-    // Paper formats in mm. The jsPDF page size and the capture paper width
-    // both derive from this map, so the canvas clamp and the page can never
-    // disagree: html2pdf clamps the capture to the page's inner width, and
-    // content along the right edge is cut off if the paper is any wider.
+    // Paper formats in mm. The print engine reads these from the injected
+    // @page rule (see updatePageRule) and the DOCX section properties use the
+    // same map, so paper output stays consistent across both exports.
     const PAGE_SIZES = Object.freeze({
         a4: { label: "A4", widthMm: 210, heightMm: 297 },
         letter: { label: "Letter (8.5 × 11)", widthMm: 215.9, heightMm: 279.4 },
@@ -24,8 +23,8 @@
     });
     const DEFAULT_PAPER_SIZE = "a4";
 
-    // Margins in mm: [top, left, bottom, right].
-    const PAGE_MARGINS_MM = [14, 14, 16, 14];
+    // Page margin in mm, shared by print-to-PDF (@page) and DOCX sections.
+    const PAGE_MARGIN_MM = 20;
 
     function getPaperSizeKey() {
         const saved = App.readStorage(App.STORAGE_KEYS.paperSize);
@@ -36,10 +35,21 @@
         return PAGE_SIZES[getPaperSizeKey()];
     }
 
-    function getPaperWidthPx() {
-        const { widthMm } = getPaperSize();
-        return ((widthMm - PAGE_MARGINS_MM[1] - PAGE_MARGINS_MM[3]) * 96) / 25.4;
+    // The browser's native print engine is the PDF pipeline now: vector text,
+    // selectable math, no canvas. It sizes pages from @page, so inject one
+    // rule from the selected paper size (export.css holds the A4 baseline).
+    function updatePageRule() {
+        const size = getPaperSize();
+        let style = document.getElementById("pageRuleStyle");
+        if (!style) {
+            style = document.createElement("style");
+            style.id = "pageRuleStyle";
+            document.head.appendChild(style);
+        }
+        style.textContent = `@page { size: ${size.widthMm}mm ${size.heightMm}mm; margin: ${PAGE_MARGIN_MM}mm; }`;
     }
+
+    updatePageRule();
 
     // file:// pages cannot fetch local files, so fall back to the loaded rules.
     async function loadAppStyles() {
@@ -100,37 +110,13 @@
         App.downloadBlob(htmlBlob, `${App.getBaseFileName()}.html`);
     }
 
-    function buildPaperElement() {
-        // The fixed off-screen host hides the paper without making the capture
-        // target itself fixed/absolute, which html2canvas cannot measure.
-        const host = document.createElement("div");
-        host.className = "paper-host";
-
-        const paper = document.createElement("div");
-        paper.className = "paper";
-        // Inline width so the page margins stay the single source of truth.
-        paper.style.width = `${getPaperWidthPx()}px`;
-
-        const body = document.createElement("div");
-        body.className = "markdown-body";
-        body.innerHTML = elements.preview.innerHTML;
-
-        // The hidden MathML copy renders as duplicate text in the canvas capture.
-        body.querySelectorAll(".katex-mathml").forEach((mathml) => mathml.remove());
-
-        paper.appendChild(body);
-        host.appendChild(paper);
-        host.style.width = paper.style.width;
-        return { host, paper };
-    }
-
-    // PDF pages and print paper cannot scroll, so table content that cannot
-    // wrap (KaTeX math and images are unbreakable inline boxes) must shrink
-    // until the table fits — otherwise auto layout pushes min-content past the
-    // page width and the right edge gets cropped.
-    // Transitions are disabled for the fit target (export.css): a running
-    // transition makes getComputedStyle report the old value, so the loop's
-    // re-reads would never see the shrink it just applied.
+    // Print paper cannot scroll, so table content that cannot wrap (KaTeX math
+    // and images are unbreakable inline boxes) must shrink until the table
+    // fits the page width — otherwise auto layout pushes min-content past the
+    // margin and the right edge gets clipped.
+    // Transitions are disabled while fitting (export.css): a running transition
+    // makes getComputedStyle report the old value, so the loop's re-reads
+    // would never see the shrink it just applied.
     function fitTablesToPage(root) {
         root.querySelectorAll("table").forEach((table) => {
             for (let pass = 0; pass < 20; pass += 1) {
@@ -153,55 +139,17 @@
         });
     }
 
-    async function exportPdf() {
-        if (!window.html2pdf) {
-            App.showNotice("The PDF library did not load. Check your connection and reload.", true);
-            return;
-        }
-
-        App.renderPreview();
-        elements.exportPdfButton.disabled = true;
-        elements.exportPdfButton.setAttribute("aria-busy", "true");
-
-        const { host, paper } = buildPaperElement();
-        document.body.appendChild(host);
-
-        try {
-            if (document.fonts?.ready) await document.fonts.ready;
-            fitTablesToPage(paper);
-
-            const paperSize = getPaperSize();
-            await window.html2pdf().set({
-                margin: PAGE_MARGINS_MM,
-                filename: `${App.getBaseFileName()}.pdf`,
-                image: { type: "jpeg", quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    scrollX: 0,
-                    scrollY: 0,
-                    backgroundColor: getComputedStyle(paper).backgroundColor,
-                },
-                jsPDF: { unit: "mm", format: [paperSize.widthMm, paperSize.heightMm], orientation: "portrait" },
-                pagebreak: {
-                    mode: ["css", "legacy"],
-                    avoid: ["pre", "table", "tr", "blockquote", "img", ".katex-display", "h1", "h2", "h3", "h4"],
-                },
-            }).from(paper).save();
-
-            App.showNotice("PDF exported.");
-        } catch (error) {
-            App.showNotice("PDF export failed. Try Print and save as PDF instead.", true);
-        } finally {
-            host.remove();
-            elements.exportPdfButton.disabled = false;
-            elements.exportPdfButton.removeAttribute("aria-busy");
-        }
+    // PDF export = the browser's native vector print engine: selectable text,
+    // KaTeX web-font math, zero rasterization. The user picks "Save as PDF"
+    // in the print dialog; @page (updatePageRule) sets the paper size.
+    function exportPdf() {
+        App.showNotice('In the print dialog, choose "Save as PDF" to save the file.');
+        printDocument();
     }
 
     function printDocument() {
         App.renderPreview();
+        updatePageRule();
         window.print();
     }
 
@@ -210,6 +158,7 @@
         document.documentElement.dataset.printRestoreTheme = document.documentElement.dataset.theme;
         document.documentElement.dataset.theme = "light";
         document.body.classList.add("is-print-fitting");
+        updatePageRule();
         fitTablesToPage(elements.preview);
     }
 
@@ -228,6 +177,8 @@
         handleBeforePrint,
         handleAfterPrint,
         PAGE_SIZES,
+        PAGE_MARGIN_MM,
         getPaperSizeKey,
+        updatePageRule,
     });
 })();

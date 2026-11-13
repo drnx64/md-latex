@@ -1,49 +1,17 @@
-/* html2canvas returns a zero-height canvas for fixed/absolute capture targets,
-   which produced a blank PDF. The host is fixed and off-screen; the paper
-   itself stays static inside it so html2canvas can measure its full height.
-   688px = A4 (210mm) minus the export.js side margins, at CSS's 96dpi —
-   export.js sets this inline from PAGE_MARGINS_MM, so that stays the truth. */
-.paper-host {
-    position: fixed;
-    top: 0;
-    left: -10000px;
-    z-index: -1;
-    width: 688px;
-    pointer-events: none;
+/* PDF export runs through the browser's native vector print engine
+   (window.print -> Save as PDF): selectable text, KaTeX web-font math,
+   no canvas anywhere. export.js injects #pageRuleStyle to override the
+   paper size from the selected format; this is the A4 baseline. */
+@page {
+    size: A4;
+    margin: 20mm;
 }
-
-.paper {
-    position: static;
-    width: 688px;
-    background: var(--surface);
-    color: var(--text);
-    pointer-events: none;
-}
-
-.paper .markdown-body { max-width: none; padding: 0; }
-
-/* PDF and print have no horizontal scroll, so the preview's scroll container
-   must not clip tables either — export.js shrinks unbreakable cell content
-   to fit the page before capture/print. */
-.paper .markdown-body table { overflow-x: visible; }
 
 /* The table-fit pass re-reads computed styles in a tight loop; a running
    transition (e.g. the reduced-motion override) would report stale values and
    the loop would never see its own shrink apply. */
-.paper,
-.paper * { transition: none !important; }
-
-/* Same for the in-place fit that runs right before print. */
 body.is-print-fitting,
 body.is-print-fitting * { transition: none !important; }
-
-/* PDF and print have no horizontal scroll, so long code lines wrap
-   instead of running off the right edge of the page. */
-.paper .markdown-body pre {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    overflow-x: visible;
-}
 
 body.standalone {
     display: block;
@@ -53,29 +21,43 @@ body.standalone {
 }
 
 @media print {
+    /* Crisp white paper and dark ink regardless of the app theme. */
+    html, body, body * { background-color: #FFFFFF !important; color: #000000 !important; } /* unslop-ignore PURE-BW export spec requires literal #FFFFFF print paper and #000000 print ink */
+
     body {
         display: block;
         height: auto;
         overflow: visible;
-        background: var(--surface);
     }
 
+    /* Only the rendered document prints — every piece of UI chrome is hidden. */
     .app-header,
     .tab-bar,
     .toolbar,
     .editor-pane,
     .divider,
-    .status-bar { display: none !important; }
+    .status-bar,
+    .find-panel,
+    .menu,
+    .modal-overlay { display: none !important; }
 
     .workspace { display: block; border: 0; }
     .preview-pane { display: block !important; overflow: visible; }
-    .markdown-body { max-width: none; padding: 0; }
+    .markdown-body {
+        max-width: none;
+        width: 100%;
+        padding: 0;
+    }
     .markdown-body table { overflow-x: visible; }
     .markdown-body pre {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
         overflow-x: visible;
     }
+
+    /* Nothing gets sliced across a page boundary: block equations,
+       tables, code blocks and images stay whole; headings keep their
+       following paragraph. */
     .markdown-body pre,
     .markdown-body table,
     .markdown-body blockquote,
