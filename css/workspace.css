@@ -31,11 +31,12 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-quarter);
+    max-width: calc(100% - var(--space-2) * 2);
     padding: var(--space-1);
     border: 1px solid var(--border);
     border-radius: var(--radius-small);
     background: var(--surface);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+    box-shadow: var(--shadow-menu);
 }
 
 .find-panel[hidden] { display: none; }
@@ -44,10 +45,16 @@
     display: flex;
     align-items: center;
     gap: var(--space-quarter);
+    flex-wrap: wrap;
 }
 
+/* The panel is narrower than the editor's row: the count and buttons wrap
+   to a second line instead of pushing past the panel edge. */
+.find-row[hidden] { display: none; }
+
 .find-input {
-    width: min(240px, 40vw);
+    width: min(240px, 100%);
+    min-width: 0;
     height: 30px;
     padding: 0 var(--space-1);
     border: 1px solid var(--border);
@@ -139,7 +146,9 @@
     background: var(--surface);
 }
 
-.workspace.is-dropping .editor-pane { outline: 2px dashed var(--accent); outline-offset: -8px; }
+/* The outline sits on the workspace itself so a drop anywhere (editor or
+   preview side) highlights the whole target, not just one pane. */
+.workspace.is-dropping { outline: 2px dashed var(--accent); outline-offset: -6px; }
 
 /* Content swaps (tab change, view change) settle in instead of jumping. */
 .workspace.is-swapping .editor-pane,

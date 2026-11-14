@@ -13,7 +13,7 @@ This is a personal project, shared in case it happens to be useful to someone el
 - Math: inline `$x$` / `\(x\)`, block `$$...$$`, and LaTeX environments (`\begin{align}`); align-family rows line up at their first `=` automatically — no `&` to type — and `\vspace{2em}` adds real space between lines
 - Markdown extras: tables, task lists, strikethrough, fenced code with Prism highlighting
 - Single-row formatting toolbar that never wraps: a joined `B` `I` `S` `</>` segment plus `H1 ▾`, `Lists ▾`, `Insert ▾`, and `Math ▾` dropdowns — the heading trigger follows the caret (H1–H4 or P), and Math carries equation and `\frac`/`\sum`/matrix templates
-- Shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O, Ctrl+F (find), Ctrl+H (find and replace), Ctrl+Alt+T (new tab), Ctrl+Alt+W (close tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
+- Shortcuts: Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+O, Ctrl+F (find), Ctrl+H (find and replace), Ctrl+Alt+T (new tab), Ctrl+Alt+W (close tab)
 - Find and replace in the editor: match count, match case, Enter / Shift+Enter to step through results, Esc to close
 - Dark and light themes, autosave to browser storage
 - Export: `.md` download, standalone HTML, Word `.docx` with native editable equations, PDF through the browser's print engine (choose Save as PDF), print
@@ -30,6 +30,8 @@ python -m http.server
 ```
 
 Everything works from `file://` except **Export HTML**: it reads the `css/` files, which browsers block on `file://`. Serve over `http://` for that one action; otherwise it falls back to the built-in stylesheet rules.
+
+A current browser is required: the find and math patterns use lookbehind regular expressions, which Safari supports only from 16.4 on.
 
 ## Structure
 
@@ -66,4 +68,4 @@ PDF export uses the browser's native vector print engine (`window.print()` → S
 - The header groups by workflow (document → workspace → output) with hairline dividers; text labels on wide screens, icon-only at 800px and below
 - Motion is state-change only (no page-load intro): tabs grow in and collapse out, panes crossfade on view/tab switches, menus exit 20% faster than they enter, themes crossfade with the sun/moon swap, notices fade in and out — token-timed (120/150/200ms) and fully disabled under `prefers-reduced-motion`
 - KaTeX fonts self-hosted in `vendor/katex/` (20 woff2 files)
-- The `unslop-check` script reports no findings at P0, P1, or P2
+- An external `unslop-check` pass (the script lives outside this repository) reports no findings at P0, P1, or P2.

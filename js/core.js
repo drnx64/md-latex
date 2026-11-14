@@ -32,7 +32,12 @@ window.App = {
     MATH_TOKEN_PATTERN: /\uE000(\d+)\uE001/g,
     DISPLAY_MATH_PARAGRAPH_PATTERN: /<p>\s*\uE000(\d+)\uE001\s*<\/p>/g,
 
-    CODE_SPAN_PATTERN: /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]+`)/,
+    // Splitting on a capture group puts code at odd indexes, so code is never
+    // touched. The final alternative catches a fence that is never closed:
+    // marked treats it as a code block to the end of the document, and the
+    // math inside must stay protected the same way. It only matches at a line
+    // start, so a stray inline ``` in prose does not swallow the rest.
+    CODE_SPAN_PATTERN: /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]+`|(?<=^|\n)[ \t]*(?:```|~~~)[\s\S]*)/,
     DISPLAY_DOLLAR_PATTERN: /\$\$([\s\S]+?)\$\$/g,
     LATEX_ENVIRONMENT_PATTERN: /\\begin\{(equation\*?|align\*?|gather\*?)\}[\s\S]*?\\end\{\1\}/g,
     DISPLAY_BRACKET_PATTERN: /\\\[([\s\S]+?)\\\]/g,

@@ -16,7 +16,17 @@
 
     function replaceMath(textSegment, reserveMath) {
         return textSegment
-            .replace(DISPLAY_DOLLAR_PATTERN, (fullMatch, expression) => reserveMath(expression, true))
+            .replace(DISPLAY_DOLLAR_PATTERN, (fullMatch, expression, offset) => {
+                // $$ only opens a display block when it owns its lines; inline
+                // "foo $$x$$ bar" must stay inside its paragraph (mirrors
+                // docx.js splitDisplayMath).
+                const matchEnd = offset + fullMatch.length;
+                const lineStart = textSegment.lastIndexOf("\n", offset - 1) + 1;
+                const lineEnd = textSegment.indexOf("\n", matchEnd);
+                const ownsLine = /^\s*$/.test(textSegment.slice(lineStart, offset))
+                    && (lineEnd === -1 || /^\s*$/.test(textSegment.slice(matchEnd, lineEnd)));
+                return reserveMath(expression, ownsLine);
+            })
             .replace(LATEX_ENVIRONMENT_PATTERN, (fullMatch) => reserveMath(fullMatch, true))
             .replace(DISPLAY_BRACKET_PATTERN, (fullMatch, expression) => reserveMath(expression, true))
             .replace(INLINE_PAREN_PATTERN, (fullMatch, expression) => reserveMath(expression, false))
@@ -56,9 +66,21 @@
     }
 
     function restoreMath(sanitizedHtml, mathEntries) {
-        return sanitizedHtml
-            .replace(DISPLAY_MATH_PARAGRAPH_PATTERN, (fullMatch, entryIndex) => renderMathEntry(mathEntries[Number(entryIndex)]))
-            .replace(MATH_TOKEN_PATTERN, (fullMatch, entryIndex) => renderMathEntry(mathEntries[Number(entryIndex)]));
+        const renderToken = (fullMatch, entryIndex) => renderMathEntry(mathEntries[Number(entryIndex)]);
+
+        // Display tokens sit alone inside a <p>, a shape an attribute value
+        // cannot take: safe to replace across the whole string first.
+        const withDisplay = sanitizedHtml.replace(DISPLAY_MATH_PARAGRAPH_PATTERN, renderToken);
+
+        // Inline tokens render in text nodes only. One that landed inside a
+        // tag (an attribute value, e.g. an image title) is dropped: splicing
+        // markup into the attribute would corrupt the HTML.
+        return withDisplay
+            .split(/(<[^>]*>)/)
+            .map((segment, segmentIndex) => (segmentIndex % 2 === 0
+                ? segment.replace(MATH_TOKEN_PATTERN, renderToken)
+                : segment.replace(MATH_TOKEN_PATTERN, "")))
+            .join("");
     }
 
     // ------------------------------------------------------------ features --

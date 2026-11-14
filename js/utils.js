@@ -14,6 +14,7 @@
     // Native confirm() cannot match the app; this modal resolves a promise.
     let confirmResolver = null;
     let confirmRestoreFocus = null;
+    let confirmHideTimer = null;
 
     function escapeHtml(text) {
         return text
@@ -57,12 +58,17 @@
 
     function showConfirm(message, confirmLabel = "OK") {
         if (confirmResolver) closeConfirm(false);
+        // The replaced modal's pending hide must not hide this one.
+        window.clearTimeout(confirmHideTimer);
 
         elements.modalMessage.textContent = message;
         elements.modalConfirmButton.textContent = confirmLabel;
         elements.modalOverlay.hidden = false;
         state.isConfirmOpen = true;
-        confirmRestoreFocus = document.activeElement;
+        // When a modal replaces another, focus is still inside the overlay:
+        // keep the original restore target instead of the old modal's button.
+        const active = document.activeElement;
+        if (!active || !elements.modalOverlay.contains(active)) confirmRestoreFocus = active;
 
         window.requestAnimationFrame(() => {
             elements.modalOverlay.classList.add("is-open");
@@ -80,11 +86,20 @@
         state.isConfirmOpen = false;
 
         elements.modalOverlay.classList.remove("is-open");
-        window.setTimeout(() => {
+        window.clearTimeout(confirmHideTimer);
+        confirmHideTimer = window.setTimeout(() => {
+            confirmHideTimer = null;
+            // A new modal opened during the exit: it owns the overlay now.
+            if (state.isConfirmOpen) return;
             elements.modalOverlay.hidden = true;
             const restoreTarget = confirmRestoreFocus;
             confirmRestoreFocus = null;
-            if (restoreTarget && restoreTarget.isConnected) restoreTarget.focus();
+            // Hiding the overlay drops focus to <body>. Only re-home it when
+            // focus actually fell: a follow-up action (closing a tab) may have
+            // already moved focus somewhere better, and its target may be the
+            // very element this dialog was opened from — now removed.
+            const focusFell = !document.activeElement || document.activeElement === document.body;
+            if (focusFell && restoreTarget && restoreTarget.isConnected) restoreTarget.focus();
         }, reducedMotionQuery.matches ? 0 : EXIT_ANIMATION_MS);
 
         resolver(result);
@@ -105,11 +120,16 @@
     function firstHeading(markdownSource) {
         const lines = markdownSource.split(/\r?\n/);
         let fenceMarker = null;
+        let fenceLength = 0;
         for (const line of lines) {
             const fence = /^\s*(`{3,}|~{3,})/.exec(line);
             if (fence) {
-                if (!fenceMarker) fenceMarker = fence[1][0];
-                else if (fence[1][0] === fenceMarker) fenceMarker = null;
+                if (!fenceMarker) {
+                    fenceMarker = fence[1][0];
+                    fenceLength = fence[1].length;
+                } else if (fence[1][0] === fenceMarker && fence[1].length >= fenceLength) {
+                    fenceMarker = null;
+                }
                 continue;
             }
             if (fenceMarker) continue;

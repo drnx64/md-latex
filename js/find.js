@@ -16,17 +16,35 @@
         return { start: editor.selectionStart, end: editor.selectionEnd };
     }
 
+    // Case folding can change string length ("İ" folds to "i" + a combining
+    // dot), which would shift every match offset. Fold per character and map
+    // each folded unit back to the index it came from.
+    function foldCase(text) {
+        let folded = "";
+        const origin = [];
+        for (let i = 0; i < text.length; i += 1) {
+            const piece = text[i].toLowerCase();
+            for (let j = 0; j < piece.length; j += 1) origin.push(i);
+            folded += piece;
+        }
+        return { folded, origin };
+    }
+
     function buildMatches(query) {
         const text = elements.editor.value;
         if (!query) return [];
-        const haystack = find.caseSensitive ? text : text.toLowerCase();
-        const needle = find.caseSensitive ? query : query.toLowerCase();
+        const useFold = !find.caseSensitive;
+        const { folded: haystack, origin } = useFold ? foldCase(text) : { folded: text, origin: null };
+        const needle = useFold ? foldCase(query).folded : query;
         const matches = [];
         let from = 0;
         while (from <= haystack.length - needle.length) {
             const at = haystack.indexOf(needle, from);
             if (at === -1) break;
-            matches.push({ start: at, end: at + needle.length });
+            // A folded match can end mid-character: back off to its last whole character.
+            matches.push(origin === null
+                ? { start: at, end: at + needle.length }
+                : { start: origin[at], end: origin[at + needle.length - 1] + 1 });
             from = at + needle.length; // non-overlapping, like native find
         }
         return matches;
@@ -111,16 +129,21 @@
         const query = elements.findInput.value;
         if (!query) return;
         const text = elements.editor.value;
-        const haystack = find.caseSensitive ? text : text.toLowerCase();
-        const needle = find.caseSensitive ? query : query.toLowerCase();
+        const useFold = !find.caseSensitive;
+        const { folded: haystack, origin } = useFold ? foldCase(text) : { folded: text, origin: null };
+        const needle = useFold ? foldCase(query).folded : query;
         const replacement = elements.replaceInput.value;
         let count = 0;
         let out = "";
+        let cursor = 0; // original-text position of the last copied character
         let from = 0;
         while (from <= haystack.length - needle.length) {
             const at = haystack.indexOf(needle, from);
             if (at === -1) break;
-            out += text.slice(from, at) + replacement;
+            const start = origin === null ? at : origin[at];
+            const end = origin === null ? at + needle.length : origin[at + needle.length - 1] + 1;
+            out += text.slice(cursor, start) + replacement;
+            cursor = end;
             from = at + needle.length;
             count += 1;
         }
@@ -128,7 +151,7 @@
             App.showNotice("Nothing to replace.");
             return;
         }
-        out += text.slice(from);
+        out += text.slice(cursor);
         elements.editor.value = out;
         App.handleEditorInput();
         runSearch();
@@ -137,10 +160,11 @@
     }
 
     function openFind({ withReplace = false } = {}) {
+        // The panel lives in the editor pane: leave preview view so it can show.
+        if (App.getEffectiveViewMode() === "preview") App.setViewMode("split");
         state.isFindOpen = true;
         elements.findPanel.hidden = false;
         elements.findReplaceRow.hidden = !withReplace;
-        elements.findPanel.classList.toggle("is-replace-open", withReplace);
         const { start, end } = getSelectionRange();
         const selected = elements.editor.value.slice(start, end);
         // A multi-line selection is almost never a search term — don't paste it in.
@@ -163,7 +187,6 @@
         if (state.isFindOpen && !elements.findPanel.hidden) {
             const showing = !elements.findReplaceRow.hidden;
             elements.findReplaceRow.hidden = showing;
-            elements.findPanel.classList.toggle("is-replace-open", !showing);
             if (showing) elements.findInput.focus();
             else elements.replaceInput.focus();
             return;
@@ -172,10 +195,13 @@
     }
 
     function handleFindKeydown(event) {
+        if (event.isComposing) return;
         if (event.key === "Escape") {
             event.preventDefault();
             closeFind();
         } else if (event.key === "Enter") {
+            // Buttons activate natively on Enter — only the inputs walk matches.
+            if (event.target !== elements.findInput && event.target !== elements.replaceInput) return;
             event.preventDefault();
             if (event.target === elements.replaceInput && event.ctrlKey) replaceAll();
             else if (event.target === elements.replaceInput && !event.shiftKey && !event.ctrlKey) replaceCurrent();
@@ -190,10 +216,21 @@
         }
     }
 
+    // The document changed under a live search (typing, replace): refresh the
+    // offsets without moving the caret or the selection.
+    function refreshMatches() {
+        if (!state.isFindOpen || !find.lastQuery) return;
+        find.matches = buildMatches(find.lastQuery);
+        if (find.index >= find.matches.length) find.index = find.matches.length - 1;
+        updateCount();
+    }
+
     function bindFindPanel() {
         elements.findInput.addEventListener("input", () => runSearch({ focusEditor: false }));
-        elements.findInput.addEventListener("keydown", handleFindKeydown);
-        elements.replaceInput.addEventListener("keydown", handleFindKeydown);
+        // One listener on the panel: bound per input, every key would be
+        // handled twice (Enter steps twice, Ctrl+H toggles back shut).
+        elements.findPanel.addEventListener("keydown", handleFindKeydown);
+        elements.editor.addEventListener("input", refreshMatches);
         elements.findPrevButton.addEventListener("click", () => step(-1));
         elements.findNextButton.addEventListener("click", () => step(1));
         elements.findReplaceButton.addEventListener("click", replaceCurrent);

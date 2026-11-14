@@ -41,6 +41,33 @@
             innerStart, innerStart + innerText.length);
     }
 
+    // $...$ is single-line math: a selection with line breaks would render as
+    // broken inline math, so it becomes a $$ block with the caret inside.
+    function wrapMathSelection() {
+        const { selectionStart, selectionEnd, value } = elements.editor;
+        const selectedText = value.slice(selectionStart, selectionEnd);
+        if (!selectedText.includes("\n")) {
+            wrapSelection("$", "$", "x^2");
+            return;
+        }
+
+        const before = "$$\n";
+        const after = "\n$$";
+        const isAlreadyWrapped = value.slice(selectionStart - before.length, selectionStart) === before
+            && value.slice(selectionEnd, selectionEnd + after.length) === after;
+
+        if (isAlreadyWrapped) {
+            const unwrappedStart = selectionStart - before.length;
+            replaceEditorRange(unwrappedStart, selectionEnd + after.length, selectedText,
+                unwrappedStart, unwrappedStart + selectedText.length);
+            return;
+        }
+
+        const innerStart = selectionStart + before.length;
+        replaceEditorRange(selectionStart, selectionEnd, `${before}${selectedText}${after}`,
+            innerStart, innerStart + selectedText.length);
+    }
+
     function insertLinkOrImage(prefix, textPlaceholder) {
         const { selectionStart, selectionEnd, value } = elements.editor;
         const labelText = value.slice(selectionStart, selectionEnd) || textPlaceholder;
@@ -128,7 +155,7 @@
         table: insertTable,
         codeBlock: () => insertFencedBlock("```", "```", "code"),
         horizontalRule: () => insertBlock("---", 3, 3),
-        inlineMath: () => wrapSelection("$", "$", "x^2"),
+        inlineMath: () => wrapMathSelection(),
         blockMath: () => insertFencedBlock("$$", "$$", "E = mc^2"),
         // Math templates wrap in $...$ like inlineMath; the caret lands in the first slot.
         fraction: () => wrapSelection("$\\frac{", "}{}$", ""),
@@ -140,7 +167,7 @@
 1 & 0 \\
 0 & 1
 \end{pmatrix}
-$$`, 18, 18),
+$$`, 19, 20),
         alignEnvironment: () => insertBlock(String.raw`\begin{align}
 
 \end{align}`, 14, 14),
@@ -210,7 +237,7 @@ $$`, 18, 18),
             return;
         }
 
-        if (event.key === "Escape" && state.isFindOpen) {
+        if (event.key === "Escape" && state.isFindOpen && !event.isComposing) {
             event.preventDefault();
             App.closeFind();
             return;
@@ -244,10 +271,20 @@ $$`, 18, 18),
         const hasModifier = event.ctrlKey || event.metaKey;
         if (!hasModifier || event.altKey || event.target === elements.editor) return;
 
-        // The find panel runs its own Ctrl+F/Ctrl+H on its inputs.
-        if (elements.findPanel && elements.findPanel.contains(event.target)) return;
-
         const key = event.key.toLowerCase();
+        const inFindPanel = Boolean(elements.findPanel && elements.findPanel.contains(event.target));
+
+        // While the find panel has focus it owns Ctrl+F / Ctrl+H: handling
+        // them here too would fire the panel's handler twice (Enter on the
+        // replace row would step twice, Ctrl+H would toggle back shut).
+        if (inFindPanel && (key === "f" || key === "h")) return;
+
+        // Bold/italic/link act on the document, not on what a text field is
+        // typing: only the editor (handled above) and buttons/menus take them.
+        const inTextField = event.target instanceof HTMLElement
+            && (event.target.matches("input, textarea") || event.target.isContentEditable);
+        if (inTextField && (key === "b" || key === "i" || key === "k")) return;
+
         if (key === "f") {
             event.preventDefault();
             App.openFind();
@@ -260,6 +297,15 @@ $$`, 18, 18),
         } else if (key === "o") {
             event.preventDefault();
             elements.fileInput.click();
+        } else if (key === "b") {
+            event.preventDefault();
+            App.applyFormat("bold");
+        } else if (key === "i") {
+            event.preventDefault();
+            App.applyFormat("italic");
+        } else if (key === "k") {
+            event.preventDefault();
+            App.applyFormat("link");
         }
     }
 

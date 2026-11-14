@@ -43,7 +43,9 @@
 .markdown-body ol { padding-left: var(--space-3); }
 .markdown-body li + li { margin-top: var(--space-quarter); }
 .markdown-body li > input[type="checkbox"] { margin: 0 var(--space-1) 0 calc(var(--space-3) * -1); }
-.markdown-body ul:has(> li > input[type="checkbox"]) { list-style: none; padding-left: var(--space-3); }
+/* Per item, not per list: a mixed list keeps its bullets on plain items,
+   and task items inside an <ol> lose their number instead of colliding. */
+.markdown-body li:has(> input[type="checkbox"]) { list-style: none; }
 
 .markdown-body blockquote {
     position: relative;

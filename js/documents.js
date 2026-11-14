@@ -61,6 +61,8 @@
 
     function renderTabs() {
         const container = elements.tabs;
+        // The strip is rebuilt from scratch below; keep the reader's place.
+        const preservedScrollLeft = container.scrollLeft;
         container.textContent = "";
 
         state.tabs.forEach((tab) => {
@@ -92,6 +94,7 @@
 
         App.renderIcons(container);
 
+        container.scrollLeft = preservedScrollLeft;
         const activeButton = container.querySelector(".tab.is-active .tab-button");
         if (activeButton) activeButton.scrollIntoView({ block: "nearest", inline: "nearest" });
         updateTabFade();
@@ -102,6 +105,9 @@
         const nextTab = state.tabs.find((tab) => tab.id === tabId);
         if (!nextTab) return;
 
+        // The strip rebuild below destroys the clicked button, dropping focus
+        // to <body>: park it in the editor instead so typing keeps working.
+        const focusWasInTabs = elements.tabs.contains(document.activeElement);
         captureTabState(getActiveTab());
         state.activeTabId = tabId;
         loadTabIntoEditor(nextTab);
@@ -110,6 +116,7 @@
         restorePreviewScroll();
         App.updateTextLevelIndicator();
         renderTabs();
+        if (focusWasInTabs) elements.editor.focus();
         App.replayClass(elements.workspace, "is-swapping");
         App.scheduleAutosave();
     }
@@ -137,7 +144,14 @@
 
         // The newest tab grows in from nothing.
         const tabElement = elements.tabs.querySelector(`.tab[data-tab-id="${tab.id}"]`);
-        if (tabElement) tabElement.classList.add("is-entering");
+        if (tabElement) {
+            tabElement.classList.add("is-entering");
+            // overflow:hidden exists only while the label is in motion;
+            // leaving it on would clip the tab's focus ring afterwards.
+            tabElement.addEventListener("animationend", () => {
+                tabElement.classList.remove("is-entering");
+            }, { once: true });
+        }
 
         App.scheduleAutosave();
         elements.editor.focus();
@@ -149,6 +163,10 @@
 
         const isActive = tab.id === state.activeTabId;
         const content = isActive ? elements.editor.value : tab.content;
+
+        // Read before the await: the confirm dialog moves focus to itself, so
+        // a later read would always miss the tab strip.
+        const focusWasInTabs = elements.tabs.contains(document.activeElement);
 
         // Chrome closes instantly; here the browser copy is the only copy,
         // so a tab with text in it asks first. Empty tabs close on the spot.
@@ -164,7 +182,6 @@
         const index = state.tabs.findIndex((entry) => entry.id === tabId);
         if (index === -1) return;
 
-        const focusWasInTabs = elements.tabs.contains(document.activeElement);
         const tabElement = elements.tabs.querySelector(`.tab[data-tab-id="${tabId}"]`);
         const exitMs = App.reducedMotionQuery.matches ? 0 : App.EXIT_ANIMATION_MS;
 
@@ -259,12 +276,13 @@
         App.scheduleAutosave();
     }
 
-    // Plain vertical wheel over the strip scrolls it sideways; shift+wheel
+    // Plain vertical wheel over a strip scrolls it sideways; shift+wheel
     // and trackpad horizontal deltas stay on the browser's native path.
+    // Bound on the tab strip and the toolbar — whichever row the wheel is on.
     function handleTabsWheel(event) {
         if (event.deltaY === 0 && event.deltaX === 0) return;
         if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
-        const scroller = elements.tabs;
+        const scroller = event.currentTarget;
         if (scroller.scrollWidth <= scroller.clientWidth) return;
         event.preventDefault();
         let scale = 1;
@@ -418,6 +436,9 @@
 
     function setDocument(content, fileName) {
         elements.editor.value = content;
+        // A fresh document starts at the top with a fresh caret; the browser
+        // would otherwise keep whatever offset the old text left behind.
+        elements.editor.setSelectionRange(0, 0);
         state.fileName = fileName;
         elements.fileNameInput.value = fileName;
 
@@ -454,15 +475,25 @@
             App.showNotice("That file is larger than 5 MB.", true);
             return;
         }
-        if (!(await confirmReplaceDocument())) return;
 
+        let fileText;
         try {
-            const fileText = await file.text();
-            setDocument(fileText, file.name);
-            App.showNotice(`Opened ${file.name}`);
+            fileText = await file.text();
         } catch (error) {
             App.showNotice("Could not read that file.", true);
+            return;
         }
+
+        // NUL bytes mean binary data behind a text-looking file name.
+        if (fileText.includes("\u0000")) {
+            App.showNotice(`"${file.name}" is not a text file.`, true);
+            return;
+        }
+
+        if (!(await confirmReplaceDocument())) return;
+
+        setDocument(fileText, file.name);
+        App.showNotice(`Opened ${file.name}`);
     }
 
     function downloadMarkdown() {

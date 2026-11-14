@@ -587,6 +587,8 @@
   padding: var(--space-2);
   background: var(--overlay);
   opacity: 0;
+  /* Closed and exiting states are invisible: never swallow clicks beneath them. */
+  pointer-events: none;
   transition: opacity var(--duration-exit) var(--ease-in);
 }
 
@@ -596,6 +598,7 @@
 
 .modal-overlay.is-open {
   opacity: 1;
+  pointer-events: auto;
   transition: opacity var(--duration-quick) var(--ease-out);
 }
 

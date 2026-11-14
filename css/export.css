@@ -49,11 +49,15 @@ body.standalone {
         padding: 0;
     }
     .markdown-body table { overflow-x: visible; }
+    .markdown-body .katex-display { overflow: visible; }
     .markdown-body pre {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
         overflow-x: visible;
     }
+    /* `body *` skips pseudo-elements: without this the decorative quote mark
+       prints in the accent color instead of ink. */
+    .markdown-body blockquote::after { color: #000000 !important; } /* unslop-ignore PURE-BW print ink for the blockquote quote mark */
 
     /* Nothing gets sliced across a page boundary: block equations,
        tables, code blocks and images stay whole; headings keep their

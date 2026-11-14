@@ -70,17 +70,38 @@
         let isOpen = false;
 
         function positionMenu() {
-            if (window.getComputedStyle(menu).position !== "fixed") return;
+            // Inline offsets from a previous open are stale (the window may
+            // have moved): clear them and re-measure against the CSS anchoring.
+            menu.style.left = "";
+            menu.style.right = "";
+            menu.style.top = "";
+            const isFixed = window.getComputedStyle(menu).position === "fixed";
             const triggerRect = trigger.getBoundingClientRect();
             const menuWidth = menu.offsetWidth;
             const menuHeight = menu.offsetHeight;
-            const left = Math.min(triggerRect.left, window.innerWidth - menuWidth - 8);
-            const topBelow = triggerRect.bottom + 4;
-            const top = topBelow + menuHeight > window.innerHeight - 8
-                ? triggerRect.top - menuHeight - 4
-                : topBelow;
-            menu.style.left = `${Math.max(8, Math.round(left))}px`;
-            menu.style.top = `${Math.max(8, Math.round(top))}px`;
+
+            if (isFixed) {
+                const left = Math.min(triggerRect.left, window.innerWidth - menuWidth - 8);
+                const topBelow = triggerRect.bottom + 4;
+                const top = topBelow + menuHeight > window.innerHeight - 8
+                    ? triggerRect.top - menuHeight - 4
+                    : topBelow;
+                menu.style.left = `${Math.max(8, Math.round(left))}px`;
+                menu.style.top = `${Math.max(8, Math.round(top))}px`;
+                return;
+            }
+
+            // Absolute menus are anchored by their CSS (right: 0 under the
+            // trigger). Only nudge them when that anchoring hangs off the
+            // left edge of the viewport. The closed menu is drawn at
+            // scale(0.95) from its top-right corner, so recover the layout
+            // box: the right edge is real, the left edge is drawn in.
+            const menuRect = menu.getBoundingClientRect();
+            const layoutLeft = menuRect.right - menu.offsetWidth;
+            if (layoutLeft >= 8) return;
+            const roomOnRight = window.innerWidth - 8 - menuRect.right;
+            const shift = Math.min(8 - layoutLeft, Math.max(0, roomOnRight));
+            if (shift > 0) menu.style.right = `${-Math.round(shift)}px`;
         }
 
         function openMenu() {
@@ -182,6 +203,8 @@
         elements.tabs.addEventListener("dblclick", App.handleTabsDoubleClick);
         elements.tabs.addEventListener("wheel", App.handleTabsWheel, { passive: false });
         elements.tabs.addEventListener("scroll", App.updateTabFade, { passive: true });
+        // The toolbar scrolls sideways too (bar hidden): same wheel rule.
+        elements.toolbar.addEventListener("wheel", App.handleTabsWheel, { passive: false });
         window.addEventListener("resize", App.updateTabFade);
         elements.newTabButton.addEventListener("click", App.createNewTab);
         document.addEventListener("keydown", App.handleTabShortcuts);
@@ -234,7 +257,10 @@
         elements.modalOverlay.addEventListener("click", (event) => {
             if (event.target === elements.modalOverlay) App.closeConfirm(false);
         });
-        elements.modalOverlay.addEventListener("keydown", (event) => {
+        // Escape and the Tab trap run at the document: focus can sit anywhere
+        // once the dialog has been interacted with, not just inside the overlay.
+        document.addEventListener("keydown", (event) => {
+            if (!state.isConfirmOpen) return;
             if (event.key === "Escape") {
                 event.stopPropagation();
                 App.closeConfirm(false);
@@ -260,6 +286,24 @@
         elements.workspace.addEventListener("dragover", App.handleDragOver);
         elements.workspace.addEventListener("dragleave", App.handleDragLeave);
         elements.workspace.addEventListener("drop", App.handleDrop);
+
+        // A file dropped outside the workspace would make the browser navigate
+        // away from the app entirely: cancel that default here. Drops inside
+        // the workspace are handled above and open the file as usual.
+        document.addEventListener("dragover", (event) => {
+            if (!event.dataTransfer?.types.includes("Files")) return;
+            event.preventDefault();
+        });
+        document.addEventListener("drop", (event) => {
+            if (!event.dataTransfer?.files.length) return;
+            event.preventDefault();
+        });
+
+        // Tab widths depend on the loaded UI font: re-check the edge fades
+        // once it has settled.
+        if (document.fonts?.ready) {
+            document.fonts.ready.then(() => App.updateTabFade());
+        }
 
         narrowScreenQuery.addEventListener("change", App.applyViewMode);
         document.addEventListener("keydown", App.handleGlobalKeydown);

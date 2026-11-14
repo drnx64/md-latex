@@ -50,6 +50,8 @@
     }
 
     function startDividerDrag(event) {
+        // Only the primary button drags; a right-click must stay a context menu.
+        if (event.button !== 0 && event.pointerType !== "touch") return;
         elements.divider.setPointerCapture(event.pointerId);
         elements.divider.classList.add("is-dragging");
     }
@@ -135,18 +137,26 @@
         elements.workspace.classList.add("is-dropping");
     }
 
-    function handleDragLeave() {
+    function handleDragLeave(event) {
+        // Moving between panes fires dragleave on the way through: only a
+        // pointer that actually left the workspace clears the highlight.
+        if (event.relatedTarget && elements.workspace.contains(event.relatedTarget)) return;
         elements.workspace.classList.remove("is-dropping");
     }
 
     function handleDrop(event) {
-        if (!event.dataTransfer?.files.length) return;
+        const files = event.dataTransfer?.files;
+        if (!files || !files.length) return;
         event.preventDefault();
         elements.workspace.classList.remove("is-dropping");
-        App.openFile(event.dataTransfer.files[0]);
+        if (files.length > 1) {
+            App.showNotice("This app opens one file per drop — the extra files were ignored.");
+        }
+        App.openFile(files[0]);
     }
 
     Object.assign(App, {
+        getEffectiveViewMode,
         applyViewMode,
         setViewMode,
         applySplitPercent,
