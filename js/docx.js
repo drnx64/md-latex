@@ -21,33 +21,100 @@
         return Math.round(mm * MM_TO_TWIPS);
     }
 
+    // ------------------------------------------------------------- escaping --
+    // XML 1.0 permits only #x9 | #xA | #xD | #x20-#xD7FF | #xE000-#xFFFD |
+    // #x10000-#x10FFFF. Control characters and lone surrogates are legal
+    // Markdown but illegal XML: one of them anywhere in word/document.xml (or
+    // docProps/core.xml) makes Word abort with "Word experienced an error
+    // trying to open the file… Open the file with the Text Recovery converter".
+    const INVALID_XML_CHARS =
+        /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+    function xmlSafe(text) {
+        return String(text == null ? "" : text).replace(INVALID_XML_CHARS, "");
+    }
+
+    // marked escapes &, <, >, " and ' in text/codespan/escape tokens for its
+    // HTML output, so the DOCX exporter receives "$a &lt; b$" instead of
+    // "$a < b$". docx escapes every one of those characters again when it
+    // serializes <w:t> (verified: TextRun "&amp;" -> w:t "&amp;amp;"), so
+    // marked's entities must all be decoded here or Word prints them
+    // literally ("&amp;" where the source had "&").
+    //
+    // Order matters: marked turns a literal "&lt;" in the source into
+    // "&amp;lt;". Decoding "&lt;" first would then miss "&amp;lt;", and
+    // decoding "&amp;" first would turn the "&amp;lt;" it produces into a
+    // real "<". So decode the specific entities first and "&amp;" last —
+    // that maps every marked output back to the exact source text.
+    function decodeMarkedEntities(text) {
+        return String(text == null ? "" : text)
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, "&");
+    }
+
     // ---------------------------------------------------------------- math --
     // raw LaTeX -> MathML (Temml) -> OMML (mathml2omml) -> docx XML node.
+
+    // xml-js wraps a parsed document in a synthetic nameless root, which docx
+    // serializes as an illegal <undefined> element that Word refuses. Unwrap
+    // it so the real <m:oMath>/<m:oMathPara> component lands in the paragraph.
+    function importOmml(omml) {
+        const imported = ImportedXmlComponent.fromXmlString(omml);
+        if (imported.rootKey !== undefined) return imported;
+        if (imported.root.length !== 1 || typeof imported.root[0] !== "object") {
+            throw new Error("Unexpected OMML structure");
+        }
+        return imported.root[0];
+    }
+
     function mathRun(tex, display) {
+        const source = xmlSafe(tex);
         try {
             // Same transform as the preview: auto-& and \vspace → strut.
-            const mathml = window.temml.renderToString(App.prepareMath(tex), { xml: true, displayMode: display });
-            let omml = window.__mml2omml.mml2omml(mathml).trim();
+            // throwOnError turns Temml's <span class="temml-error"> fallback
+            // markup into a catchable ParseError instead of feeding junk to
+            // the OMML converter.
+            const mathml = window.temml.renderToString(App.prepareMath(source), {
+                xml: true,
+                displayMode: display,
+                throwOnError: true,
+            });
+            if (!/^<math[\s>]/.test(mathml.trim())) throw new Error("Temml did not return MathML");
+            // Temml marks equation-number slots with an empty
+            // <span class="tml-eqn"></span> inside <mtext>. The OMML converter
+            // has no mapping for span and warns on each one; the span carries
+            // no content, so dropping it loses nothing. Spans WITH content are
+            // left in place so a real unsupported construct still warns.
+            const cleaned = mathml.replace(/<span\b[^>]*>\s*<\/span>/g, "");
+            // disableDecode keeps MathML's &lt; / &amp; entities intact: the
+            // converter otherwise decodes them and writes raw "<" and "&" into
+            // <m:t>, producing OMML that is not well-formed XML.
+            let omml = window.__mml2omml.mml2omml(cleaned, { disableDecode: true }).trim();
             if (display && !omml.includes("oMathPara")) {
                 const ns = /xmlns:m="[^"]+"/.exec(omml);
                 const decl = ns ? ns[0] : 'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"';
                 omml = `<m:oMathPara ${decl}>${omml}</m:oMathPara>`;
             }
-            return ImportedXmlComponent.fromXmlString(omml);
+            return importOmml(omml);
         } catch (error) {
             // One bad expression must not sink the whole export.
-            console.warn("Equation conversion failed:", tex, error);
-            return new TextRun({ text: `${display ? "$$" : "$"}${tex}${display ? "$$" : "$"}`, italics: true });
+            console.warn("Equation conversion failed:", source, error);
+            return new TextRun({ text: `${display ? "$$" : "$"}${source}${display ? "$$" : "$"}`, italics: true });
         }
     }
 
-    // $...$ inline, $$...$$ display; a literal $ must be escaped (\$) and the
-    // content may not touch whitespace at either end (keeps "$5 and $10" prose
-    // from being read as math).
-    const INLINE_MATH_RE = /(?<!\\)\$\$([^$]+?)\$\$|(?<!\\)\$([^$\s](?:[^$]*[^$\s])?)\$/g;
+    // App.extractMath lifts every equation ($…$, $$…$$, \(…\), \[…\],
+    // \begin{…}…) out of the RAW source before marked sees it — the same
+    // reservation the preview renders — and hands back the untouched LaTeX.
+    // Reserved spans arrive here as \uE000index\uE001 markers.
+    const MATH_TOKEN = /\uE000(\d+)\uE001/g;
+    const MATH_TOKEN_ONLY = /^\s*\uE000(\d+)\uE001\s*$/;
 
     function plainRun(text, flags) {
-        const options = { text };
+        const options = { text: decodeMarkedEntities(xmlSafe(text)) };
         if (flags.bold) options.bold = true;
         if (flags.italics) options.italics = true;
         if (flags.strike) options.strike = true;
@@ -59,17 +126,20 @@
     }
 
     // Split literal text into text runs and equation runs.
-    function textRuns(text, flags = {}) {
+    function textRuns(text, flags = {}, ctx = {}) {
         if (!text) return [];
         const runs = [];
         let last = 0;
         let match;
-        INLINE_MATH_RE.lastIndex = 0;
-        while ((match = INLINE_MATH_RE.exec(text)) !== null) {
+        MATH_TOKEN.lastIndex = 0;
+        while ((match = MATH_TOKEN.exec(text)) !== null) {
             if (match.index > last) runs.push(plainRun(text.slice(last, match.index), flags));
-            const tex = (match[1] !== undefined ? match[1] : match[2]).trim();
-            if (tex && flags.noMath) runs.push(plainRun(tex, flags));
-            else if (tex) runs.push(mathRun(tex, match[1] !== undefined));
+            const entry = (ctx.mathEntries || [])[Number(match[1])];
+            if (entry) {
+                // Equations inside links keep their source text.
+                if (flags.noMath) runs.push(plainRun(`$${entry.expression}$`, flags));
+                else runs.push(mathRun(entry.expression, entry.isDisplay));
+            }
             last = match.index + match[0].length;
         }
         if (last < text.length) runs.push(plainRun(text.slice(last), flags));
@@ -83,7 +153,7 @@
             switch (token.type) {
                 case "escape":
                 case "text":
-                    children.push(...textRuns(token.text, flags));
+                    children.push(...textRuns(token.text, flags, ctx));
                     break;
                 case "strong":
                     children.push(...inlineChildren(token.tokens, { ...flags, bold: true }, ctx));
@@ -104,17 +174,17 @@
                     // Hyperlinks carry runs only — equations inside links keep their source text.
                     children.push(new ExternalHyperlink({
                         children: inlineChildren(token.tokens, { ...flags, noMath: true }, ctx),
-                        link: token.href,
+                        link: xmlSafe(token.href),
                     }));
                     break;
                 case "image":
                     children.push(imageRun(token, ctx));
                     break;
                 case "html":
-                    children.push(...textRuns(String(token.text || "").replace(/<[^>]*>/g, " "), flags));
+                    children.push(...textRuns(String(token.text || "").replace(/<[^>]*>/g, " "), flags, ctx));
                     break;
                 default:
-                    if (token.text) children.push(...textRuns(token.text, flags));
+                    if (token.text) children.push(...textRuns(token.text, flags, ctx));
             }
         }
         return children;
@@ -133,14 +203,38 @@
 
     // --------------------------------------------------------------- blocks --
 
+    // extractMath wraps a display equation in blank lines, so it lexes as a
+    // paragraph holding nothing but one marker. Render that as a centered
+    // display equation instead of an inline run.
+    function loneDisplayIndex(token) {
+        const tokens = token.tokens;
+        const text = tokens && tokens.length === 1 && (tokens[0].type === "text" || tokens[0].type === "escape")
+            ? tokens[0].text
+            : (!tokens || tokens.length === 0 ? token.text : null);
+        if (text == null) return -1;
+        const match = MATH_TOKEN_ONLY.exec(String(text));
+        return match ? Number(match[1]) : -1;
+    }
+
     function paragraphFrom(token, ctx) {
+        const index = loneDisplayIndex(token);
+        const entry = index >= 0 ? (ctx.mathEntries || [])[index] : null;
+        if (entry && entry.isDisplay) {
+            return new Paragraph({
+                children: [mathRun(entry.expression, true)],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 160 },
+            });
+        }
         const paragraph = { children: inlineChildren(token.tokens, {}, ctx) };
         if (ctx.indentLeft) paragraph.indent = { left: ctx.indentLeft };
         return new Paragraph(paragraph);
     }
 
     function codeParagraph(text) {
-        const lines = String(text || "").replace(/\n$/, "").split("\n");
+        // Block code is raw source (marked does not escape it): no entity
+        // decoding here, only control-character stripping.
+        const lines = xmlSafe(String(text || "")).replace(/\n$/, "").split("\n");
         const runs = [];
         lines.forEach((line, index) => {
             if (index > 0) runs.push(new TextRun({ break: 1 }));
@@ -269,8 +363,25 @@
                     pushTable(token, ctx, out);
                     break;
                 case "html": {
-                    const text = String(token.text || "").replace(/<[^>]*>/g, " ").trim();
-                    if (text) out.push(new Paragraph({ children: textRuns(text, {}) }));
+                    // Aligned HTML blocks keep their alignment in DOCX
+                    // (preview and HTML export render the same markup).
+                    const raw = String(token.text || "");
+                    const align = raw.match(/<\w+[^>]*\balign="([a-z]+)"/i) ||
+                        raw.match(/class="[^"]*\balign(left|center|right)\b/i);
+                    const alignValue = align ? align[1].toLowerCase() : "";
+                    const alignment = alignValue === "center"
+                        ? AlignmentType.CENTER
+                        : alignValue === "right"
+                            ? AlignmentType.RIGHT
+                            : alignValue === "left"
+                                ? AlignmentType.LEFT
+                                : null;
+                    const text = raw.replace(/<[^>]*>/g, " ").trim();
+                    if (!text) break;
+                    out.push(new Paragraph({
+                        children: textRuns(text, {}, ctx),
+                        ...(alignment ? { alignment } : {}),
+                    }));
                     break;
                 }
                 case "def":
@@ -279,31 +390,6 @@
                     if (token.tokens) out.push(paragraphFrom(token, ctx));
             }
         }
-    }
-
-    // ---------------------------------------------------- display math split --
-
-    // $$ blocks that own their lines are lifted out before lexing so the raw
-    // LaTeX reaches Temml untouched (no markdown escaping, no KaTeX DOM).
-    function splitDisplayMath(md) {
-        const parts = [];
-        const re = /\$\$([\s\S]+?)\$\$/g;
-        let last = 0;
-        let match;
-        while ((match = re.exec(md)) !== null) {
-            const start = match.index;
-            const end = start + match[0].length;
-            const lineStart = md.lastIndexOf("\n", start - 1) + 1;
-            const lineEnd = md.indexOf("\n", end);
-            const ownsLine = /^\s*$/.test(md.slice(lineStart, start)) &&
-                (lineEnd === -1 || /^\s*$/.test(md.slice(end, lineEnd)));
-            if (!ownsLine) continue;
-            if (start > last) parts.push({ type: "md", text: md.slice(last, start) });
-            parts.push({ type: "math", tex: match[1].trim() });
-            last = end;
-        }
-        if (last < md.length) parts.push({ type: "md", text: md.slice(last) });
-        return parts;
     }
 
     // ------------------------------------------------------------- images ----
@@ -375,26 +461,18 @@
     }
 
     async function buildChildren(md) {
-        const parts = splitDisplayMath(md);
-        const ctx = { images: new Map() };
+        // Reserve math from the raw source first — identical to the preview —
+        // so marked never sees (and never escapes or splits) LaTeX.
+        const { protectedSource, mathEntries } = App.extractMath(md);
+        const lexed = window.marked.lexer(protectedSource);
+        const ctx = { images: new Map(), mathEntries };
+
         const srcs = [];
-        parts.forEach((part) => {
-            if (part.type === "md") collectImageSrcs(window.marked.lexer(part.text), srcs);
-        });
+        collectImageSrcs(lexed, srcs);
         await prepareImages(srcs, ctx);
 
         const out = [];
-        for (const part of parts) {
-            if (part.type === "math") {
-                out.push(new Paragraph({
-                    children: [mathRun(part.tex, true)],
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 160 },
-                }));
-            } else {
-                blockChildren(window.marked.lexer(part.text), ctx, out);
-            }
-        }
+        blockChildren(lexed, ctx, out);
         return out;
     }
 
@@ -408,7 +486,7 @@
             const margin = twips(App.PAGE_MARGIN_MM);
             const doc = new Document({
                 creator: "MD+LaTeX",
-                title: App.getDocumentTitle(),
+                title: xmlSafe(App.getDocumentTitle()),
                 sections: [{
                     properties: {
                         page: {
@@ -421,7 +499,9 @@
                 numbering: numberingConfig(),
             });
             const blob = await Packer.toBlob(doc);
-            App.downloadBlob(blob, `${App.getBaseFileName()}.docx`);
+            // await: downloadBlob is sync today, but awaiting keeps the success
+            // notice honest if it ever starts returning a promise.
+            await App.downloadBlob(blob, `${App.getBaseFileName()}.docx`);
             App.showNotice("Word document exported.");
         } catch (error) {
             console.error(error);

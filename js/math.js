@@ -18,8 +18,8 @@
         return textSegment
             .replace(DISPLAY_DOLLAR_PATTERN, (fullMatch, expression, offset) => {
                 // $$ only opens a display block when it owns its lines; inline
-                // "foo $$x$$ bar" must stay inside its paragraph (mirrors
-                // docx.js splitDisplayMath).
+                // "foo $$x$$ bar" must stay inside its paragraph (the docx
+                // exporter consumes the same extractMath output).
                 const matchEnd = offset + fullMatch.length;
                 const lineStart = textSegment.lastIndexOf("\n", offset - 1) + 1;
                 const lineEnd = textSegment.indexOf("\n", matchEnd);
