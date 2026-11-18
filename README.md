@@ -1,6 +1,6 @@
-# Markdown and LaTeX Editor
+# Mark⁺ — Markdown and LaTeX Editor
 
-A browser-based writing tool that renders Markdown and LaTeX side by side: type on the left, read the typeset result on the right. It solves the usual friction of writing technical notes — no build step, no server, no account, and no export pipeline that turns equations into images.
+**Mark plus** (written Mark⁺) is a browser-based writing tool that renders Markdown and LaTeX side by side: type on the left, read the typeset result on the right. It solves the usual friction of writing technical notes — no build step, no server, no account, and no export pipeline that turns equations into images. The repository stays **`md-latex`**.
 
 ## Preview
 
@@ -8,26 +8,25 @@ A browser-based writing tool that renders Markdown and LaTeX side by side: type 
 
 ## Features
 
-- **Three view modes:** Editor, Split, and Preview, with a draggable divider that also moves from the keyboard (arrow keys, 2% steps, clamped to 20–80%) and persists between visits.
-- **Document tabs:** several files open at once; each tab keeps its own text, name, caret, and scroll position. Tabs autosave to `localStorage` 500 ms after you stop typing and restore on reload. The strip scrolls sideways with the wheel and fades the edge that still has hidden tabs.
+- **Three view modes:** Editor, Split, and Preview, with a draggable divider that also moves from the keyboard (arrow keys, 2% steps, clamped to 20–80%) and persists between visits. On phones the split **stacks editor over preview** with a horizontal divider (drag or ArrowUp/ArrowDown), so both halves stay usable on a narrow screen — and below 640 px the toggle folds to a two-way **Edit | Preview** pill (Split returns at 640 px and up, restoring your last choice).
+- **Document tabs:** several files open at once; each tab keeps its own text, name, caret, and scroll position. Tabs autosave to `localStorage` 500 ms after you stop typing and restore on reload. The strip scrolls sideways with the wheel and fades the edge that still has hidden tabs. Reorder tabs by **long-pressing and dragging** them sideways (press-and-drag works immediately with a mouse; touch waits for the hold so the strip can still scroll natively), with the tabs in between sliding aside, the strip auto-scrolling at its edges, and `Esc` cancelling the drag — or with the keyboard via `Ctrl+Alt+←` / `Ctrl+Alt+→`.
 - **Automatic file naming:** the first `# Heading` names the file while it still carries a generated name; renaming by hand locks your name in place.
-- **Two-way scroll sync** between editor and preview, toggleable and remembered.
+- **Two-way scroll sync** between editor and preview, toggleable and remembered. It lives at the far right of the formatting toolbar on desktop (dimmed outside Split view) and inside the `•••` menu on phones.
 - **Math:** inline `$x$` and `\(x\)`, display `$$…$$` and `\[…\]`, and LaTeX environments (`\begin{align}`, `equation`, `gather`, and their `*` variants). Rows without an alignment tab get one automatically at their first relation (`=`, `<`, `>`, `:`, `!`), so equations line up without typing `&`. `\vspace{2em}` produces real vertical space instead of being dropped. Rendering is KaTeX; a `$5` price and an escaped `\$` are left alone.
-- **Markdown extras:** GFM tables, task lists, strikethrough, and fenced code with Prism highlighting (25 language components loaded on demand).
+- **Markdown extras:** GFM tables, task lists, strikethrough, and fenced code with Prism highlighting (25 language components loaded on demand). Paragraph alignment is written as HTML blocks — `<p align="left|center|right">` or the `.alignleft` / `.aligncenter` / `.alignright` classes — and is honored by the preview, the HTML export, and the DOCX export alike.
 - **Sanitized output:** HTML passes through DOMPurify before it reaches the preview.
 - **Formatting toolbar:** a joined `B` `I` `S` `</>` segment plus `H1 ▾`, `Lists ▾`, `Insert ▾`, and `Math ▾` menus. The heading trigger follows the caret (H1–H4 or paragraph); Math carries fraction, square root, summation, integral, matrix, and align-environment templates.
-- **Find and replace:** match count, match case, `Enter` / `Shift+Enter` to step through results, `Ctrl+Enter` to replace all, `Esc` to close, and live re-matching as the document changes.
-- **Keyboard shortcuts:** `Ctrl+B` / `Ctrl+I` / `Ctrl+K` for bold, italic, link; `Ctrl+S` download; `Ctrl+O` open; `Ctrl+F` find; `Ctrl+H` replace; `Ctrl+Alt+T` new tab; `Ctrl+Alt+W` close tab. `Enter` continues the current list.
-- **Export:**
-  - `.md` source download
-  - standalone HTML with styles inlined
+- **Find and replace:** every match highlighted in the editor (current match in solid accent), match count, match case, `Enter` / `Shift+Enter` to step through results, `Ctrl+Enter` to replace all, `Esc` to close, and live re-matching as the document changes. The count and the highlighted matches follow the document even after math placeholders shift the text.
+- **Keyboard shortcuts:** `Ctrl+B` / `Ctrl+I` / `Ctrl+K` for bold, italic, link; `Ctrl+S` download; `Ctrl+O` open; `Ctrl+F` find; `Ctrl+H` replace; `Ctrl+Alt+T` new tab; `Ctrl+Alt+W` close tab; `Ctrl+Alt+←` / `Ctrl+Alt+→` move the active tab. `Enter` continues the current list. The full list is one click away under **Keyboard shortcuts** in the `•••` menu.
+- **Export:** everything that leaves the app sits under one **`Export PDF ▾`** split button — the amber CTA prints (Save as PDF), the chevron opens a menu with `.md` source download, standalone HTML, Word `.docx`, plain print, and a labeled **Paper size** section (A4, Letter, Folio / Long, Legal — each with its dimensions and an amber ✓ on the active one).
+  - standalone HTML with styles inlined — and it **round-trips**: reopening that file (Open or drag-and-drop) restores the exact Markdown source from an embedded marker; third-party HTML opens too, converted back to Markdown
   - Word `.docx` with **native editable equations** — LaTeX goes Temml → MathML → OMML, so equations are double-click editable in Word, never screenshots
   - PDF through the browser's native print engine (`Save as PDF`): vector text, selectable math, no canvas and no rasterization
   - plain print
 - **Paper sizes:** A4, Letter, Folio / Long, and Legal with a 20 mm margin, shared between the print `@page` rule and the DOCX section properties so both exports agree.
 - **Print-aware output:** printing forces the light theme, shrinks unbreakable table content until it fits the page width, and stops display math from being clipped.
-- **File input:** open `.md`, `.markdown`, `.mdown`, `.txt`, or `.tex` up to 5 MB, with a NUL-byte check that rejects binary files. Drag a file onto the workspace to open it; dropping several opens the first and says so.
-- **Responsive header:** text labels on wide screens, icon-only at 800 px and below, with an overflow menu for Download, Export HTML, Export .docx, Print, and paper size. Status bar shows word count, character count, reading time, and save state.
+- **File input:** open `.md`, `.markdown`, `.mdown`, `.txt`, `.tex`, or `.html` / `.htm` up to 5 MB, with a NUL-byte check that rejects binary files. HTML files arrive as Markdown — the exact source when they were exported from Mark⁺, a DOM→Markdown conversion otherwise (KaTeX equations recover their original LaTeX). Drag a file onto the workspace to open it; dropping several opens the first and says so.
+- **Responsive header:** a 3-zone desktop bar (52 px) — file context on the left (mark, Open, filename), the `Editor | Split | Preview` pill optically centered, and output/utilities on the right (`Export PDF ▾`, theme, `•••`). Below 768 px it compresses to three rows (48 px app bar with a flexible filename, 36 px tab strip, 40 px toolbar), and below 640 px the wordmark text and Split option drop out to give the filename room. Open shows icon + text at ≥1024 px and icon-only below; theme is icon-only (sun/moon). The `•••` utility menu holds **Keyboard shortcuts**, **About & credits**, and — phones only — theme and scroll sync. Status bar shows word count, character count, reading time, and save state.
 - **Themes and motion:** dark and light themes that persist, a single amber accent driven entirely by tokens in `css/tokens.css`, self-hosted Bebas Neue (display) and Inter (body), and all animation disabled under `prefers-reduced-motion`.
 - **Offline:** every library is vendored locally. The one network request is a Google Sans `@import` used only by the decorative blockquote quote mark.
 
@@ -97,6 +96,7 @@ Everything works from `file://` except **Export HTML**, which reads the `css/` f
 │   ├── math.js             Math extraction, KaTeX rendering, auto-align, \vspace
 │   ├── render.js           Parse → sanitize → restore, word/reading statistics
 │   ├── documents.js        Tab strip, autosave/restore, file open, download
+│   ├── import.js           HTML file → Markdown (round-trip marker, DOM walk)
 │   ├── export.js           Standalone HTML, print/PDF, @page rule, table fitting
 │   ├── docx.js             Word export (Temml → MathML → OMML)
 │   ├── editor.js           Textarea operations, formatting actions, shortcuts
@@ -117,6 +117,10 @@ Everything works from `file://` except **Export HTML**, which reads the `css/` f
 ```
 
 Load order matters: `js/core.js` first, `js/app.js` last (see the comment in `index.html`).
+
+## Credits
+
+Mark⁺ is built and maintained by **[@drnx64](https://discord.com/users/929998586375180288)** — the same link is in the app's `•••` menu under **About & credits**.
 
 ## License
 

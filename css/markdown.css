@@ -7,6 +7,20 @@
     overflow-wrap: break-word;
 }
 
+/* Alignment: written as an HTML block (<p align="center">) or the equivalent
+   .alignleft/.aligncenter/.alignright class — both preview and HTML export
+   read the same markup, so the rules cover each other's syntax. */
+.markdown-body .alignleft { text-align: left; }
+.markdown-body .aligncenter,
+.markdown-body [align="center"] { text-align: center; }
+.markdown-body .alignright,
+.markdown-body [align="right"] { text-align: right; }
+.markdown-body [align="left"] { text-align: left; }
+
+/* Centered images ride the same rule as their paragraph. */
+.markdown-body .aligncenter > img,
+.markdown-body [align="center"] > img { margin-inline: auto; }
+
 /* Preview view reads as a page: give tables room to wrap before scrolling. */
 .workspace[data-view="preview"] .markdown-body { max-width: var(--measure-wide); }
 

@@ -47,6 +47,8 @@ window.App = {
     LIST_LINE_PATTERN: /^(\s*)([-*+]|\d+\.)\s(\[[ xX]\]\s)?(.*)$/,
 
     narrowScreenQuery: window.matchMedia("(max-width: 800px)"),
+    // Phones: two-way view toggle, mobile header rows (see layout.js/app.css).
+    phoneQuery: window.matchMedia("(max-width: 639px)"),
     reducedMotionQuery: window.matchMedia("(prefers-reduced-motion: reduce)"),
 
     state: {
@@ -77,13 +79,19 @@ window.App = {
         fileInput: document.getElementById("fileInput"),
         sampleDocument: document.getElementById("sampleDocument"),
         syncScrollButton: document.getElementById("syncScrollButton"),
+        syncScrollMenuItem: document.getElementById("syncScrollMenuItem"),
         themeButton: document.getElementById("themeButton"),
+        themeMenuItem: document.getElementById("themeMenuItem"),
+        shortcutsButton: document.getElementById("shortcutsButton"),
         openButton: document.getElementById("openButton"),
+        openMenuItem: document.getElementById("openMenuItem"),
         downloadButton: document.getElementById("downloadButton"),
         exportHtmlButton: document.getElementById("exportHtmlButton"),
         exportDocxButton: document.getElementById("exportDocxButton"),
         printButton: document.getElementById("printButton"),
         exportPdfButton: document.getElementById("exportPdfButton"),
+        exportMenuButton: document.getElementById("exportMenuButton"),
+        exportMenu: document.getElementById("exportMenu"),
         overflowButton: document.getElementById("overflowButton"),
         overflowMenu: document.getElementById("overflowMenu"),
         wordCount: document.getElementById("wordCount"),
@@ -106,6 +114,8 @@ window.App = {
         mathMenuButton: document.getElementById("mathMenuButton"),
         mathMenu: document.getElementById("mathMenu"),
         findPanel: document.getElementById("findPanel"),
+        editorHighlights: document.getElementById("editorHighlights"),
+        aboutButton: document.getElementById("aboutButton"),
         findInput: document.getElementById("findInput"),
         findCount: document.getElementById("findCount"),
         findCaseButton: document.getElementById("findCaseButton"),

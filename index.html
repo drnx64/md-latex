@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Markdown and LaTeX editor</title>
+<title>Mark⁺ — Markdown and LaTeX editor</title>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="preload" href="assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/bebas-neue-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -22,39 +22,57 @@
 <body>
 
 <header class="app-header">
-    <div class="title-group">
-        <h1 class="app-title" data-icon="appMark"><span class="visually-hidden">Markdown + LaTeX</span></h1>
+    <!-- Zone 1 — file context: brand, open, document name -->
+    <div class="header-zone header-zone-start">
+        <h1 class="app-title" data-icon="appMark" aria-label="Mark plus — Markdown and LaTeX editor"><span class="app-wordmark" aria-hidden="true">MARK<sup>+</sup></span></h1>
+        <button type="button" class="button" id="openButton" data-icon="openFile" aria-label="Open file" title="Open a local file (Ctrl+O)"><span class="button-label">Open</span></button>
         <label class="visually-hidden" for="fileNameInput">File name</label>
         <input id="fileNameInput" class="file-name-input" type="text" value="untitled.md" spellcheck="false" autocomplete="off">
     </div>
-    <div class="header-actions">
-        <div class="action-group">
-            <button type="button" class="button" id="openButton" data-icon="openFile" aria-label="Open file" title="Open a local file (Ctrl+O)"><span class="button-label">Open file</span></button>
+
+    <!-- Zone 2 — view mode, optically centered between the two 1fr zones -->
+    <div class="header-zone header-zone-center">
+        <div class="segmented" role="group" aria-label="Layout">
+            <button type="button" class="button" data-view-mode="edit" data-icon="edit" aria-pressed="false" aria-label="Editor view" title="Editor view"><span class="button-label label-wide">Editor</span><span class="button-label label-narrow">Edit</span></button>
+            <button type="button" class="button" data-view-mode="split" data-icon="split" aria-pressed="true" aria-label="Split view" title="Split view"><span class="button-label">Split</span></button>
+            <button type="button" class="button" data-view-mode="preview" data-icon="eye" aria-pressed="false" aria-label="Preview view" title="Preview view"><span class="button-label">Preview</span></button>
         </div>
-        <div class="action-group">
-            <div class="segmented" role="group" aria-label="Layout">
-                <button type="button" class="button" data-view-mode="edit" data-icon="edit" aria-pressed="false" aria-label="Editor view" title="Editor view"><span class="button-label">Editor</span></button>
-                <button type="button" class="button" data-view-mode="split" data-icon="split" aria-pressed="true" aria-label="Split view" title="Split view"><span class="button-label">Split</span></button>
-                <button type="button" class="button" data-view-mode="preview" data-icon="eye" aria-pressed="false" aria-label="Preview view" title="Preview view"><span class="button-label">Preview</span></button>
+    </div>
+
+    <!-- Zone 3 — output and app utilities -->
+    <div class="header-zone header-zone-end">
+        <!-- One amber CTA for PDF, joined to the export & paper-size menu. -->
+        <div class="export-split">
+            <button type="button" class="button button-primary export-primary" id="exportPdfButton" data-icon="pdf" aria-label="Export PDF" title="Export PDF — opens the print dialog, choose Save as PDF"><span class="button-label label-wide">Export PDF</span><span class="button-label label-narrow">Export</span></button>
+            <button type="button" class="button button-primary menu-trigger export-chevron" id="exportMenuButton" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" aria-label="More export options" title="Download and export options"><span class="chevron" data-icon="chevron"></span></button>
+            <div class="menu export-menu" id="exportMenu" role="menu" aria-label="Export" hidden>
+                <button type="button" class="menu-item" id="downloadButton" role="menuitem" data-icon="download" title="Download the Markdown source (Ctrl+S)"><span class="menu-label">Download .md</span></button>
+                <button type="button" class="menu-item" id="exportHtmlButton" role="menuitem" data-icon="htmlExport" title="Export HTML"><span class="menu-label">Export HTML</span></button>
+                <button type="button" class="menu-item" id="exportDocxButton" role="menuitem" data-icon="docx" title="Export Word document with editable equations"><span class="menu-label">Export .docx</span></button>
+                <button type="button" class="menu-item" id="printButton" role="menuitem" data-icon="print" title="Print"><span class="menu-label">Print</span></button>
+                <div class="menu-separator" role="separator"></div>
+                <div class="menu-section-label" role="presentation">Paper size</div>
+                <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="a4" aria-checked="true" title="Paper size: A4"><span class="menu-label">A4</span></button>
+                <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="letter" aria-checked="false" title="Paper size: Letter (8.5 × 11)"><span class="menu-label">Letter (8.5 × 11)</span></button>
+                <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="folio" aria-checked="false" title="Paper size: Folio / Long (8.5 × 13)"><span class="menu-label">Folio / Long (8.5 × 13)</span></button>
+                <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="legal" aria-checked="false" title="Paper size: Legal (8.5 × 14)"><span class="menu-label">Legal (8.5 × 14)</span></button>
             </div>
-            <button type="button" class="button" id="syncScrollButton" data-icon="syncScroll" aria-pressed="true" aria-label="Sync scroll" title="Sync scroll"><span class="button-label">Sync scroll</span></button>
-            <button type="button" class="button" id="themeButton" data-icon="sun" aria-label="Light theme" title="Light theme"><span class="button-label">Light theme</span></button>
         </div>
-        <div class="action-group">
-            <button type="button" class="button button-primary" id="exportPdfButton" data-icon="pdf" aria-label="Export PDF" title="Export PDF — opens the print dialog, choose Save as PDF"><span class="button-label">Export PDF</span></button>
-            <div class="overflow-menu">
-                <button type="button" class="button menu-trigger" id="overflowButton" data-icon="more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" title="More actions"></button>
-                <div class="menu" id="overflowMenu" role="menu" aria-label="More actions" hidden>
-                    <button type="button" class="menu-item" id="downloadButton" role="menuitem" data-icon="download" title="Download the Markdown source (Ctrl+S)"><span class="menu-label">Download .md</span></button>
-                    <button type="button" class="menu-item" id="exportHtmlButton" role="menuitem" data-icon="htmlExport" title="Export HTML"><span class="menu-label">Export HTML</span></button>
-                    <button type="button" class="menu-item" id="exportDocxButton" role="menuitem" data-icon="docx" title="Export Word document with editable equations"><span class="menu-label">Export .docx</span></button>
-                    <button type="button" class="menu-item" id="printButton" role="menuitem" data-icon="print" title="Print"><span class="menu-label">Print</span></button>
-                    <div class="menu-separator" role="separator"></div>
-                    <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="a4" aria-checked="true" title="Paper size: A4"><span class="menu-label">A4</span></button>
-                    <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="letter" aria-checked="false" title="Paper size: Letter (8.5 × 11)"><span class="menu-label">Letter (8.5 × 11)</span></button>
-                    <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="folio" aria-checked="false" title="Paper size: Folio / Long (8.5 × 13)"><span class="menu-label">Folio / Long (8.5 × 13)</span></button>
-                    <button type="button" class="menu-item menu-item-radio" role="menuitemradio" data-paper-size="legal" aria-checked="false" title="Paper size: Legal (8.5 × 14)"><span class="menu-label">Legal (8.5 × 14)</span></button>
-                </div>
+        <button type="button" class="button theme-button" id="themeButton" data-icon="sun" aria-label="Light theme" title="Light theme"><span class="button-label">Light theme</span></button>
+        <div class="overflow-menu">
+            <button type="button" class="button menu-trigger" id="overflowButton" data-icon="more" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" title="More actions"></button>
+            <div class="menu" id="overflowMenu" role="menu" aria-label="More actions" hidden>
+                <!-- Phones relocate Open here: the 48px app bar can't hold mark +
+                     Open + filename beside the pill and CTA (Hick: one place for
+                     file actions below 640px). -->
+                <button type="button" class="menu-item phone-only-item" id="openMenuItem" role="menuitem" data-icon="openFile" title="Open a local file"><span class="menu-label">Open file</span></button>
+                <div class="menu-separator phone-only-item" role="separator"></div>
+                <button type="button" class="menu-item utility-mobile-item" id="themeMenuItem" role="menuitem" data-icon="sun" title="Light theme"><span class="menu-label">Light theme</span></button>
+                <button type="button" class="menu-item utility-mobile-item" id="syncScrollMenuItem" role="menuitemcheckbox" data-icon="syncScroll" aria-checked="true" title="Keep editor and preview scroll positions together"><span class="menu-label">Sync scroll</span></button>
+                <div class="menu-separator utility-mobile-item" role="separator"></div>
+                <button type="button" class="menu-item" id="shortcutsButton" role="menuitem" data-icon="keyboard" title="Keyboard shortcuts"><span class="menu-label">Keyboard shortcuts</span></button>
+                <div class="menu-separator" role="separator"></div>
+                <button type="button" class="menu-item" id="aboutButton" role="menuitem" data-icon="info" title="Made by @drnx64 — open Discord profile"><span class="menu-label">About &amp; credits</span></button>
             </div>
         </div>
     </div>
@@ -65,7 +83,7 @@
     <button type="button" class="tab-new" id="newTabButton" data-icon="plus" aria-label="New tab" title="New tab (Ctrl+Alt+T)"></button>
 </div>
 
-<input type="file" id="fileInput" accept=".md,.markdown,.mdown,.txt,.tex,text/markdown,text/plain" hidden>
+<input type="file" id="fileInput" accept=".md,.markdown,.mdown,.txt,.tex,.html,.htm,text/markdown,text/plain,text/html" hidden>
 
 <div class="toolbar" id="toolbar" role="toolbar" aria-label="Formatting">
     <div class="toolbar-group segment" role="group" aria-label="Inline formatting">
@@ -117,6 +135,11 @@
             <button type="button" class="menu-item" role="menuitem" data-format="alignEnvironment">Align environment</button>
         </div>
     </div>
+    <!-- Far-right end of the bar: scroll sync belongs to split view, so it
+         dims outside split (phones carry it in the ••• menu instead). -->
+    <div class="toolbar-group toolbar-end toolbar-sync">
+        <button type="button" class="button" id="syncScrollButton" data-icon="syncScroll" aria-pressed="true" aria-label="Sync scroll" title="Sync scroll"><span class="button-label">Sync scroll</span></button>
+    </div>
 </div>
 
 <main class="workspace" id="workspace" data-view="split">
@@ -125,17 +148,22 @@
             <div class="find-row">
                 <input type="text" class="find-input" id="findInput" placeholder="Find in document" aria-label="Find" autocomplete="off" spellcheck="false">
                 <span class="find-count" id="findCount" role="status" aria-live="polite"></span>
-                <button type="button" class="find-button" id="findCaseButton" aria-pressed="false" aria-label="Match case" title="Match case">Aa</button>
-                <button type="button" class="find-button" id="findPrevButton" aria-label="Previous match" title="Previous match (Shift+Enter)">↑</button>
-                <button type="button" class="find-button" id="findNextButton" aria-label="Next match" title="Next match (Enter)">↓</button>
-                <button type="button" class="find-button" id="findCloseButton" aria-label="Close find" title="Close (Esc)">✕</button>
+                <div class="find-actions">
+                    <button type="button" class="find-button" id="findCaseButton" aria-pressed="false" aria-label="Match case" title="Match case">Aa</button>
+                    <button type="button" class="find-button" id="findPrevButton" aria-label="Previous match" title="Previous match (Shift+Enter)">↑</button>
+                    <button type="button" class="find-button" id="findNextButton" aria-label="Next match" title="Next match (Enter)">↓</button>
+                    <button type="button" class="find-button" id="findCloseButton" aria-label="Close find" title="Close (Esc)">✕</button>
+                </div>
             </div>
             <div class="find-row find-replace-row" id="findReplaceRow" hidden>
                 <input type="text" class="find-input" id="replaceInput" placeholder="Replace with" aria-label="Replace with" autocomplete="off" spellcheck="false">
-                <button type="button" class="find-button find-button-text" id="findReplaceButton" title="Replace current match">Replace</button>
-                <button type="button" class="find-button find-button-text" id="findReplaceAllButton" title="Replace all matches (Ctrl+Enter)">All</button>
+                <div class="find-actions">
+                    <button type="button" class="find-button find-button-text" id="findReplaceButton" title="Replace current match">Replace</button>
+                    <button type="button" class="find-button find-button-text" id="findReplaceAllButton" title="Replace all matches (Ctrl+Enter)">All</button>
+                </div>
             </div>
         </div>
+        <div class="editor-highlights" id="editorHighlights" aria-hidden="true"></div>
         <textarea id="editor" class="editor" aria-label="Markdown source" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea>
     </section>
     <div id="divider" class="divider" role="separator" aria-orientation="vertical" aria-label="Resize editor and preview" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
@@ -152,7 +180,7 @@
     <span id="notice" class="notice" role="status"></span>
 </footer>
 
-<script type="text/markdown" id="sampleDocument"># Markdown and LaTeX editor
+<script type="text/markdown" id="sampleDocument"># Mark⁺ — Markdown and LaTeX editor
 
 Write on the left, read on the right. Everything below is live, so edit any of it.
 
@@ -184,6 +212,12 @@ A price like $5 is left alone, and an escaped \$ stays a dollar sign.
 | Force | $F$ | newton |
 | Pressure | $p$ | pascal |
 | Stress | $\sigma$ | pascal |
+
+Alignment is written as HTML blocks — the preview, HTML export, and DOCX all honor it:
+
+<p align="left">Left-aligned</p>
+<p align="center">Centered</p>
+<p align="right">Right-aligned</p>
 
 > Quotes get a raised surface and a big accent quote mark.
 
@@ -232,6 +266,7 @@ def moment(force, distance):
 <script src="js/math.js"></script>
 <script src="js/render.js"></script>
 <script src="js/documents.js"></script>
+<script src="js/import.js"></script>
 <script src="js/export.js"></script>
 <script src="js/docx.js"></script>
 <script src="js/editor.js"></script>

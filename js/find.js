@@ -50,7 +50,39 @@
         return matches;
     }
 
+    // Highlight every match in the overlay layer behind the transparent
+    // textarea. The layer mirrors the textarea's box exactly (same padding,
+    // same wrap width minus the scrollbar) so marks sit under the text.
+    function syncHighlightScroll() {
+        const layer = elements.editorHighlights;
+        layer.scrollTop = elements.editor.scrollTop;
+        layer.scrollLeft = elements.editor.scrollLeft;
+    }
+
+    function updateHighlights() {
+        const layer = elements.editorHighlights;
+        if (!state.isFindOpen || !find.matches.length) {
+            layer.innerHTML = "";
+            return;
+        }
+        const text = elements.editor.value;
+        // The textarea's vertical scrollbar eats width from its content box;
+        // shrink the layer by the same amount so wrapped lines match.
+        layer.style.right = `${elements.editor.offsetWidth - elements.editor.clientWidth}px`;
+        let html = "";
+        let cursor = 0;
+        find.matches.forEach((match, i) => {
+            html += App.escapeHtml(text.slice(cursor, match.start));
+            html += `<mark${i === find.index ? ' class="is-current"' : ""}>${App.escapeHtml(text.slice(match.start, match.end))}</mark>`;
+            cursor = match.end;
+        });
+        html += App.escapeHtml(text.slice(cursor));
+        layer.innerHTML = html;
+        syncHighlightScroll();
+    }
+
     function updateCount() {
+        updateHighlights();
         const total = find.matches.length;
         if (!total) {
             elements.findCount.textContent = elements.findInput.value ? "No results" : "";
@@ -180,6 +212,7 @@
     function closeFind() {
         state.isFindOpen = false;
         elements.findPanel.hidden = true;
+        elements.editorHighlights.innerHTML = "";
         elements.editor.focus();
     }
 
@@ -231,6 +264,10 @@
         // handled twice (Enter steps twice, Ctrl+H toggles back shut).
         elements.findPanel.addEventListener("keydown", handleFindKeydown);
         elements.editor.addEventListener("input", refreshMatches);
+        // The overlay is a static copy of the text: follow the textarea's
+        // scroll, and rebuild when the box (scrollbar width) changes.
+        elements.editor.addEventListener("scroll", syncHighlightScroll);
+        window.addEventListener("resize", updateHighlights);
         elements.findPrevButton.addEventListener("click", () => step(-1));
         elements.findNextButton.addEventListener("click", () => step(1));
         elements.findReplaceButton.addEventListener("click", replaceCurrent);
@@ -258,5 +295,7 @@
         closeFind,
         toggleReplace,
         bindFindPanel,
+        // Called after re-renders: math placeholders shift text offsets.
+        refreshFindMatches: refreshMatches,
     });
 })();

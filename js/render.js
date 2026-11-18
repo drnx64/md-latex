@@ -23,6 +23,8 @@
         if (window.Prism) window.Prism.highlightAllUnder(elements.preview);
         updateStatistics();
         App.updateAutoTitle();
+        // Math placeholders can shift text offsets under a live search.
+        if (App.refreshFindMatches) App.refreshFindMatches();
     }
 
     function scheduleRender() {

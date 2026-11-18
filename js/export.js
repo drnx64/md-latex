@@ -83,6 +83,11 @@
         const fontBase = new URL("assets/fonts/", document.baseURI).href;
         const inlinedStyles = appStyles.replaceAll("../assets/fonts/", fontBase);
 
+        // Round-trip marker: Open File parses this back to the exact source.
+        // JSON escaping keeps "</script>" and friends inert inside the tag;
+        // "<" as an escape survives both HTML parsing and JSON.parse.
+        const sourceMarker = `<script type="text/markdown">${JSON.stringify(elements.editor.value).replaceAll("<", "\\u003c")}</script>`;
+
         return [
             "<!doctype html>",
             '<html lang="en" data-theme="light">',
@@ -95,6 +100,7 @@
             "</head>",
             '<body class="standalone">',
             `<article class="markdown-body">${elements.preview.innerHTML}</article>`,
+            sourceMarker,
             "</body>",
             "</html>",
         ].join("\n");

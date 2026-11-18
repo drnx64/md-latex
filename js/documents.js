@@ -76,7 +76,7 @@
             tabButton.className = "tab-button";
             tabButton.dataset.tabId = tab.id;
             tabButton.textContent = tab.fileName;
-            tabButton.title = `${tab.fileName} (double-click to rename)`;
+            tabButton.title = `${tab.fileName} (double-click to rename, hold and drag to reorder)`;
             if (isActive) tabButton.setAttribute("aria-current", "true");
             wrapper.appendChild(tabButton);
 
@@ -301,13 +301,317 @@
         bar.classList.toggle("has-fade-right", scroller.scrollLeft < maxScroll - 1);
     }
 
+    // --- Tab reordering -----------------------------------------------------
+    // A long press lifts the tab out of the row: the tabs it passes slide
+    // aside and the drop writes the new order back to state.tabs. The press
+    // must hold still first, so touch keeps the strip's native sideways
+    // scroll until the gesture clearly means "drag"; a mouse may also start
+    // by moving a few pixels, which is how desktop tab strips behave.
+    const LONG_PRESS_MS = 400;
+    const MOUSE_DRAG_SLOP_PX = 6;
+    const TOUCH_CANCEL_SLOP_PX = 10;
+    const CLICK_SUPPRESS_TRAVEL_PX = 16;
+    const DRAG_CLICK_SUPPRESS_MS = 300;
+    const EDGE_SCROLL_ZONE_PX = 56;
+    const EDGE_SCROLL_MAX_STEP_PX = 12;
+    // Matches --duration-base: how long the eased-back tabs keep animating
+    // after a cancelled drag before the drag styling comes off the strip.
+    const DRAG_SETTLE_MS = 200;
+
+    let pressState = null;
+    let dragState = null;
+    let edgeScrollFrame = 0;
+    let lastDragEndAt = 0;
+
+    function handleTabsPointerDown(event) {
+        if (pressState || dragState) return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        if (event.target.closest(".tab-close")) return;
+        const tabElement = event.target.closest(".tab");
+        if (!tabElement || !elements.tabs.contains(tabElement)) return;
+        if (state.tabs.length < 2) return;
+
+        pressState = {
+            pointerId: event.pointerId,
+            pointerType: event.pointerType,
+            element: tabElement,
+            startX: event.clientX,
+            startY: event.clientY,
+            lastX: event.clientX,
+            lastY: event.clientY,
+            travel: 0,
+            timer: window.setTimeout(beginDrag, LONG_PRESS_MS),
+        };
+    }
+
+    function cancelPress() {
+        if (!pressState) return;
+        window.clearTimeout(pressState.timer);
+        pressState = null;
+    }
+
+    function handleTabsPointerMove(event) {
+        if (dragState) {
+            if (event.pointerId === dragState.pointerId) updateDrag(event.clientX, event.clientY);
+            return;
+        }
+        if (!pressState || event.pointerId !== pressState.pointerId) return;
+
+        pressState.lastX = event.clientX;
+        pressState.lastY = event.clientY;
+        const travel = Math.hypot(event.clientX - pressState.startX, event.clientY - pressState.startY);
+        pressState.travel = Math.max(pressState.travel, travel);
+
+        const isMouse = pressState.pointerType === "mouse";
+        if (travel >= (isMouse ? MOUSE_DRAG_SLOP_PX : TOUCH_CANCEL_SLOP_PX)) {
+            // A moving mouse means drag; a moving finger means the browser is
+            // about to scroll the strip, so let it and drop the press.
+            if (isMouse) beginDrag();
+            else cancelPress();
+        }
+    }
+
+    function handleTabsPointerUp(event) {
+        const pointerId = event ? event.pointerId : undefined;
+        if (dragState) {
+            if (pointerId === undefined || pointerId === dragState.pointerId) endDrag(true);
+            return;
+        }
+        if (pressState && (pointerId === undefined || pointerId === pressState.pointerId)) cancelPress();
+    }
+
+    function beginDrag() {
+        const press = pressState;
+        if (!press || dragState) return;
+        window.clearTimeout(press.timer);
+
+        const strip = elements.tabs;
+        const stripRect = strip.getBoundingClientRect();
+        const tabElements = Array.from(strip.querySelectorAll(".tab"));
+        const originIndex = tabElements.indexOf(press.element);
+        if (originIndex === -1) {
+            pressState = null;
+            return;
+        }
+
+        const gap = Number.parseFloat(window.getComputedStyle(strip).columnGap) || 0;
+        // Positions are measured once, in strip-content coordinates: the
+        // sibling transforms below never move layout, so they stay valid for
+        // the whole drag and survive the strip scrolling under the pointer.
+        const layout = tabElements.map((element) => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left - stripRect.left + strip.scrollLeft, width: rect.width };
+        });
+
+        dragState = {
+            pointerId: press.pointerId,
+            element: press.element,
+            tabId: press.element.dataset.tabId,
+            tabElements,
+            layout,
+            gap,
+            width: layout[originIndex].width,
+            originIndex,
+            targetIndex: originIndex,
+            grabOffset: (press.lastX - stripRect.left + strip.scrollLeft) - layout[originIndex].left,
+            startX: press.startX,
+            startY: press.startY,
+            travel: press.travel,
+            lastClientX: press.lastX,
+            lastClientY: press.lastY,
+        };
+        pressState = null;
+
+        strip.classList.add("is-drag-active");
+        press.element.classList.add("is-dragging");
+        try {
+            press.element.setPointerCapture(press.pointerId);
+        } catch (error) {
+            // Capture only steadies the events; the window listeners suffice.
+        }
+        document.addEventListener("touchmove", preventDragTouchScroll, { passive: false });
+        document.addEventListener("keydown", handleDragKeydown, true);
+        updateDrag(press.lastX, press.lastY);
+        startEdgeScroll();
+    }
+
+    function updateDrag(clientX, clientY) {
+        const drag = dragState;
+        if (!drag) return;
+        drag.lastClientX = clientX;
+        drag.lastClientY = clientY;
+        drag.travel = Math.max(drag.travel, Math.hypot(clientX - drag.startX, clientY - drag.startY));
+
+        const strip = elements.tabs;
+        const stripRect = strip.getBoundingClientRect();
+        const pointerContentX = clientX - stripRect.left + strip.scrollLeft;
+        const desiredLeft = pointerContentX - drag.grabOffset;
+        drag.element.style.transform = `translateX(${desiredLeft - drag.layout[drag.originIndex].left}px)`;
+
+        const center = desiredLeft + drag.width / 2;
+        const originCenter = drag.layout[drag.originIndex].left + drag.width / 2;
+        let targetIndex = drag.originIndex;
+        if (center < originCenter) {
+            for (let index = drag.originIndex - 1; index >= 0; index -= 1) {
+                const slot = drag.layout[index];
+                if (center < slot.left + slot.width / 2) targetIndex = index;
+                else break;
+            }
+        } else if (center > originCenter) {
+            for (let index = drag.originIndex + 1; index < drag.tabElements.length; index += 1) {
+                const slot = drag.layout[index];
+                if (center > slot.left + slot.width / 2) targetIndex = index;
+                else break;
+            }
+        }
+
+        if (targetIndex !== drag.targetIndex) {
+            drag.targetIndex = targetIndex;
+            applyDragShifts();
+        }
+    }
+
+    // Removing the dragged tab and re-inserting it at the target shifts every
+    // tab in between by exactly one tab width plus the gap, whatever their
+    // own widths are — so all of them move by the same amount.
+    function applyDragShifts() {
+        const drag = dragState;
+        if (!drag) return;
+        const shift = drag.width + drag.gap;
+        drag.tabElements.forEach((element, index) => {
+            if (index === drag.originIndex) return;
+            let offset = 0;
+            if (drag.targetIndex > drag.originIndex && index > drag.originIndex && index <= drag.targetIndex) {
+                offset = -shift;
+            } else if (drag.targetIndex < drag.originIndex && index >= drag.targetIndex && index < drag.originIndex) {
+                offset = shift;
+            }
+            element.style.transform = offset === 0 ? "" : `translateX(${offset}px)`;
+        });
+    }
+
+    // Dragging past the strip's edge scrolls it, so every tab stays reachable
+    // even when the pointer cannot travel any further.
+    function startEdgeScroll() {
+        stopEdgeScroll();
+        const tick = () => {
+            const drag = dragState;
+            if (!drag) return;
+            const strip = elements.tabs;
+            const stripRect = strip.getBoundingClientRect();
+            let step = 0;
+            if (drag.lastClientX < stripRect.left + EDGE_SCROLL_ZONE_PX) {
+                step = -Math.ceil((stripRect.left + EDGE_SCROLL_ZONE_PX - drag.lastClientX) / 8);
+            } else if (drag.lastClientX > stripRect.right - EDGE_SCROLL_ZONE_PX) {
+                step = Math.ceil((drag.lastClientX - (stripRect.right - EDGE_SCROLL_ZONE_PX)) / 8);
+            }
+            if (step !== 0 && strip.scrollWidth > strip.clientWidth) {
+                const next = Math.sign(step) * Math.min(Math.abs(step), EDGE_SCROLL_MAX_STEP_PX);
+                const before = strip.scrollLeft;
+                strip.scrollLeft = before + next;
+                if (strip.scrollLeft !== before) updateDrag(drag.lastClientX, drag.lastClientY);
+            }
+            edgeScrollFrame = window.requestAnimationFrame(tick);
+        };
+        edgeScrollFrame = window.requestAnimationFrame(tick);
+    }
+
+    function stopEdgeScroll() {
+        if (edgeScrollFrame) window.cancelAnimationFrame(edgeScrollFrame);
+        edgeScrollFrame = 0;
+    }
+
+    // Touch scrolling cannot be stopped from a pointer event: the strip's
+    // native pan wins unless the touchmove default is cancelled while the
+    // drag owns the gesture.
+    function preventDragTouchScroll(event) {
+        if (dragState) event.preventDefault();
+    }
+
+    function handleDragKeydown(event) {
+        if (!dragState || event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        endDrag(false);
+    }
+
+    function endDrag(shouldCommit) {
+        const drag = dragState;
+        if (!drag) return;
+        dragState = null;
+
+        stopEdgeScroll();
+        document.removeEventListener("touchmove", preventDragTouchScroll);
+        document.removeEventListener("keydown", handleDragKeydown, true);
+        try {
+            drag.element.releasePointerCapture(drag.pointerId);
+        } catch (error) {
+            // The pointer is already gone (pointercancel, window blur).
+        }
+
+        const didReorder = drag.targetIndex !== drag.originIndex;
+        // A press that never went anywhere is still a click; only a real
+        // reorder (or a real drag) swallows the click that follows the drop.
+        if (didReorder || drag.travel >= CLICK_SUPPRESS_TRAVEL_PX) lastDragEndAt = Date.now();
+
+        drag.tabElements.forEach((element) => { element.style.transform = ""; });
+        drag.element.classList.remove("is-dragging");
+
+        const focusWasInTabs = elements.tabs.contains(document.activeElement);
+        const strip = elements.tabs;
+
+        if (shouldCommit && didReorder) {
+            const [movedTab] = state.tabs.splice(drag.originIndex, 1);
+            state.tabs.splice(drag.targetIndex, 0, movedTab);
+            strip.classList.remove("is-drag-active");
+            renderTabs();
+            App.scheduleAutosave();
+        } else {
+            // Nothing to rebuild: let the cleared transforms ease the tabs
+            // home, then drop the drag styling (instant under reduced motion).
+            window.setTimeout(() => {
+                if (!dragState) strip.classList.remove("is-drag-active");
+            }, App.reducedMotionQuery.matches ? 0 : DRAG_SETTLE_MS);
+        }
+
+        if (focusWasInTabs) {
+            const button = elements.tabs.querySelector(`.tab-button[data-tab-id="${drag.tabId}"]`);
+            if (button) button.focus();
+        }
+    }
+
+    function wasRecentDrag() {
+        return Date.now() - lastDragEndAt < DRAG_CLICK_SUPPRESS_MS;
+    }
+
+    // Keyboard equivalent of the drag, for the strip's focus order.
+    function moveTabBy(tabId, delta) {
+        const index = state.tabs.findIndex((tab) => tab.id === tabId);
+        const targetIndex = index + delta;
+        if (index === -1 || targetIndex < 0 || targetIndex >= state.tabs.length) return;
+
+        const [movedTab] = state.tabs.splice(index, 1);
+        state.tabs.splice(targetIndex, 0, movedTab);
+        renderTabs();
+        App.scheduleAutosave();
+
+        const button = elements.tabs.querySelector(`.tab-button[data-tab-id="${tabId}"]`);
+        if (button) button.focus();
+        App.showNotice(`Moved ${movedTab.fileName} to position ${targetIndex + 1} of ${state.tabs.length}`);
+    }
+
     function handleTabsClick(event) {
+        if (wasRecentDrag()) return;
         const closeButton = event.target.closest(".tab-close");
         if (closeButton) {
             closeTab(closeButton.dataset.tabId);
             return;
         }
-        const tabButton = event.target.closest(".tab-button");
+        // Pointer capture retargets the click after a drag to the tab wrapper;
+        // if that drag never went anywhere (wasRecentDrag already returned for
+        // one that did), fall through to the button inside it.
+        const tabButton = event.target.closest(".tab-button")
+            || event.target.closest(".tab")?.querySelector(".tab-button");
         if (tabButton) activateTab(tabButton.dataset.tabId);
     }
 
@@ -320,7 +624,9 @@
     }
 
     function handleTabsDoubleClick(event) {
-        if (!event.target.closest(".tab-button")) return;
+        if (wasRecentDrag()) return;
+        const onTab = event.target.closest(".tab-button") || event.target.closest(".tab");
+        if (!onTab) return;
         elements.fileNameInput.focus();
         elements.fileNameInput.select();
     }
@@ -337,6 +643,9 @@
         } else if (event.altKey && key === "w") {
             event.preventDefault();
             closeTab(state.activeTabId);
+        } else if (event.altKey && (key === "arrowleft" || key === "arrowright")) {
+            event.preventDefault();
+            moveTabBy(state.activeTabId, key === "arrowleft" ? -1 : 1);
         } else if (key === "tab" && state.tabs.length > 1) {
             event.preventDefault();
             cycleTab(event.shiftKey ? -1 : 1);
@@ -492,6 +801,19 @@
 
         if (!(await confirmReplaceDocument())) return;
 
+        // HTML files open as Markdown: exact source when the file carries our
+        // round-trip marker, converted DOM→Markdown otherwise (see import.js).
+        if (/\.x?html?$/i.test(file.name)) {
+            const converted = App.htmlExportToMarkdown(fileText);
+            if (converted.error) {
+                App.showNotice(`"${file.name}" is not a Mark⁺ HTML export.`, true);
+                return;
+            }
+            setDocument(converted.markdown, file.name.replace(/\.x?html?$/i, ".md"));
+            App.showNotice(`Opened ${file.name} as Markdown`);
+            return;
+        }
+
         setDocument(fileText, file.name);
         App.showNotice(`Opened ${file.name}`);
     }
@@ -519,6 +841,10 @@
         handleTabsClick,
         handleTabsAuxClick,
         handleTabsDoubleClick,
+        handleTabsPointerDown,
+        handleTabsPointerMove,
+        handleTabsPointerUp,
+        moveTabBy,
         handleTabShortcuts,
     });
 })();

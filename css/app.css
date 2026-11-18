@@ -1,20 +1,26 @@
+/* 3-zone header (Gestalt: one row, three functional clusters).
+   1fr auto 1fr keeps the view-mode pill optically centered; 12px sits
+   between zones, 8px between controls inside a zone (Fitts/Hick). */
 .app-header {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1) var(--space-2);
-  min-height: 48px;
+  gap: var(--space-2) var(--space-3);
+  min-height: 52px;
   padding: var(--space-1) var(--space-2);
   background: var(--surface);
 }
 
-.title-group {
+.header-zone {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
 }
+
+.header-zone-start { justify-self: start; }
+.header-zone-center { justify-self: center; }
+.header-zone-end { justify-self: end; }
 
 .app-title {
   display: inline-flex;
@@ -34,9 +40,37 @@
   flex: none;
 }
 
+/* Wordmark: Mark⁺, set in the display face with the plus raised. Bebas Neue
+   is caps-only, so the visible text is already uppercase (lowercase code
+   points could fall back glyph-by-glyph to the next font); the accessible
+   name on the h1 spells out "Mark plus". */
+.app-wordmark {
+  font-size: var(--step-2);
+  letter-spacing: 0.02em;
+}
+
+/* The plus is the brand's yellow: enlarged (0.55em → 0.8em) and painted
+   accent gold so MARK⁺ reads at a glance in either theme. */
+.app-wordmark sup {
+  font-size: 0.8em;
+  line-height: 0;
+  vertical-align: super;
+  color: var(--accent);
+}
+
+/* The plus in the header mark: enlarged and painted accent (gold) so the
+   brand mark reads even when the wordmark is clipped off-screen. */
+.mark-plus {
+  stroke: var(--accent);
+}
+
 .file-name-input {
   width: 224px;
   max-width: 100%;
+  /* Shrinks inside its zone on narrow headers instead of pushing the
+     center/right zones off-screen (mobile row 1 keeps its right cluster). */
+  min-width: 48px;
+  flex: 0 1 auto;
   min-height: 32px;
   padding: 0 var(--space-1);
   border: 0;
@@ -47,24 +81,59 @@
   font-size: var(--step-small);
 }
 
-.header-actions {
-  display: flex;
-  flex-wrap: wrap;
+/* Export split button: the amber PDF CTA joined to its dropdown — one
+   control for everything that leaves the app (Hick: exports in one place). */
+.export-split {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
 }
 
-.action-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
+.export-split .button {
+  border-radius: 0;
+}
+.export-split .button:first-child {
+  border-radius: var(--radius-small) 0 0 var(--radius-small);
+}
+.export-split .button:last-child {
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+}
+.export-split .button + .button {
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
 }
 
-/* Groups read as workflow stages (document, workspace, output), divided by a hairline. */
-.action-group + .action-group {
-  padding-left: var(--space-1);
-  border-left: 1px solid var(--border);
+.export-chevron {
+  padding: 0 var(--space-1);
+}
+
+/* CTA wording: "Export PDF" with the icon on desktop, bare "Export" on the
+   phone row where every pixel belongs to the filename. */
+.export-split .button-label.label-wide { display: inline; }
+.export-split .button-label.label-narrow { display: none; }
+/* The joined CTA never breaks its label across lines (it did at 768px). */
+.export-split .button-label { white-space: nowrap; }
+/* The CTA is text-led on every width: "Export PDF" (or "Export" on phones)
+   plus the chevron — an icon beside that much text overflowed the 768px row. */
+.export-split .export-primary .icon { display: none; }
+/* Beats .button-primary's 16px padding: the chevron is a 33px toggle, not a CTA. */
+.export-split .export-chevron { padding: 0 var(--space-1); }
+
+/* Header control labels: text where it disambiguates, icon-only where the
+   glyph is the label (theme), text only once there is room (open). */
+.segmented .button .button-label { display: inline; }
+.segmented .button .icon { display: none; }
+/* The edit segment reads "Editor" everywhere except small phones (see 639px). */
+.segmented [data-view-mode="edit"] .label-narrow { display: none; }
+
+#openButton .icon { display: block; }
+#openButton .button-label { display: none; }
+#themeButton .button-label { display: none; }
+/* Wide screens hide .button icons by default; the theme toggle IS its icon
+   (sun/moon), so it must stay visible at every width. */
+#themeButton .icon { display: block; }
+
+@media (min-width: 1024px) {
+  #openButton .button-label { display: inline; }
 }
 
 .segmented {
@@ -239,13 +308,49 @@
   background: var(--border);
 }
 
-/* Paper-size radios: the check marks the active format. */
+/* Paper-size radios: the check marks the active format, in accent gold. */
 .menu-item-radio[aria-checked="true"]::after {
   content: "✓";
   margin-left: auto;
   padding-left: var(--space-2);
   color: var(--accent);
   font-weight: 600;
+}
+
+/* Paper labels carry dimensions ("Folio / Long (8.5 × 13)"), so this menu
+   needs more room than the generic 208px. */
+.export-menu {
+  min-width: 252px;
+}
+
+/* Uppercase micro-header that groups the export menu's second half. */
+.menu-section-label {
+  padding: var(--space-1) var(--space-1) var(--space-quarter);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menu-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.menu-item:disabled:hover {
+  background: transparent;
+}
+
+/* Theme and scroll sync live in this menu on phones only — on desktop the
+   theme button sits in the header and sync sits at the toolbar's end.
+   Open file is the mirror case: it stays in the header bar from 640px up
+   and folds into this menu below that, where the app bar runs out of room. */
+@media (min-width: 768px) {
+  .utility-mobile-item { display: none; }
+}
+
+@media (min-width: 640px) {
+  .phone-only-item { display: none; }
 }
 
 /* Chrome-style document tabs: content-sized strip, active tab lit with an
@@ -289,6 +394,9 @@
   background: transparent;
   /* Transparent border matching default state prevents layout shifts */
   border: 1px solid transparent;
+  /* Long-press must never start a text selection instead of a drag. */
+  user-select: none;
+  -webkit-user-select: none;
   transition:
     background-color var(--duration-quick) var(--ease-out),
     border-color var(--duration-quick) var(--ease-out);
@@ -476,6 +584,32 @@
   height: 16px;
 }
 
+/* Long-press reorder (is-drag-active on the strip, is-dragging on the lifted
+   tab): the dragged tab floats above the row while the tabs it passes slide
+   aside. The transform transition only exists during a drag, so an ordinary
+   press never moves anything. */
+.tabs.is-drag-active {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tabs.is-drag-active .tab {
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    background-color var(--duration-quick) var(--ease-out),
+    border-color var(--duration-quick) var(--ease-out);
+}
+
+.tabs.is-drag-active .tab.is-dragging {
+  z-index: 2;
+  cursor: grabbing;
+  transition: none;
+  background: var(--surface-raised);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
 /* One row, always: excess width scrolls sideways (bar hidden) instead of wrapping. */
 .toolbar {
   display: flex;
@@ -499,6 +633,12 @@
   align-items: center;
   gap: var(--space-quarter);
   flex: none;
+}
+
+/* Scroll sync rides the far end of the bar (always one glance away). */
+.toolbar-end {
+  margin-left: auto;
+  padding-left: var(--space-1);
 }
 
 .toolbar .button {
@@ -603,7 +743,7 @@
 }
 
 .modal {
-  width: min(420px, 100%);
+  width: min(460px, 100%);
   padding: var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -624,6 +764,9 @@
   font-size: var(--step-base);
   line-height: 1.5;
   text-wrap: pretty;
+  /* The shortcuts dialog stacks lines and columns; normal messages have no
+     newlines, so they render exactly as before. */
+  white-space: pre-wrap;
 }
 
 .modal-actions {
@@ -701,19 +844,14 @@
   .button-label {
     display: none;
   }
-  .segmented [data-view-mode="split"] {
-    display: none;
-  }
   .file-name-input {
     width: 100%;
   }
+  /* Narrow screens re-enable icons for every button, but the export CTA keeps
+     its text label (icon + "Export PDF" + chevron wrapped to two lines). */
+  .export-split .export-primary .icon { display: none; }
   .status-bar #saveStatus {
     margin-left: 0;
-  }
-  /* Groups may wrap to their own lines here; the gap alone separates them. */
-  .action-group + .action-group {
-    padding-left: 0;
-    border-left: 0;
   }
 }
 
@@ -742,4 +880,71 @@
     opacity: 1;
     pointer-events: auto;
   }
+}
+
+/* ---- Phone header (<768px): one 48px row, three clusters ---------------
+   Left: mark + open + filename (filename flexes, right cluster never
+   overflows). Right: view pill, Export, ••• — theme and scroll sync move
+   into the utility menu (Hick: fewer top-level controls). */
+@media (max-width: 767px) {
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-1);
+    min-height: 48px;
+    padding: var(--space-quarter) 10px;
+  }
+  .header-zone { gap: var(--space-1); }
+  .header-zone-start { flex: 1 1 auto; min-width: 0; }
+  .header-zone-center,
+  .header-zone-end { flex: 0 0 auto; }
+
+  /* CTA shortens to "Export" + chevron; no icon (text states the outcome). */
+  .export-split .button-label.label-wide { display: none; }
+  .export-split .button-label.label-narrow { display: inline; }
+  .export-primary .icon { display: none; }
+
+  /* Moved into the ••• utility menu on phones. */
+  .theme-button,
+  .toolbar-sync { display: none; }
+
+  /* View toggle targets stay ≥36px (Fitts) inside the 48px row. */
+  .segmented .button { min-height: 36px; }
+
+  /* Row 2 — 36px tab strip, row 3 — 40px formatting toolbar. */
+  .tab-bar { min-height: 36px; }
+  .tab-button,
+  .tab-new { min-height: 36px; }
+  .tab-close { width: 36px; min-height: 36px; }
+  .toolbar {
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+/* ---- Small phones (<640px): two-way view toggle -----------------------
+   Split is a tablet/desktop luxury; below this the pill reads Edit |
+   Preview only (layout.js folds split → edit here), the wordmark text and
+   the header's Open button give their horizontal room back to the
+   filename (Open lives in the ••• menu as openMenuItem), and every gap
+   tightens so mark + filename fit beside the pill and CTA. */
+@media (max-width: 639px) {
+  .segmented [data-view-mode="split"] { display: none; }
+  .app-wordmark { display: none; }
+  #openButton { display: none; }
+
+  .segmented [data-view-mode="edit"] .label-wide { display: none; }
+  .segmented [data-view-mode="edit"] .label-narrow { display: inline; }
+
+  /* 8px gaps between zones and controls no longer fit at 360px. */
+  .app-header { gap: var(--space-quarter); }
+  .header-zone { gap: var(--space-quarter); }
+
+  /* The CTA sheds its 16px side padding; "Export" still reads as text. */
+  .export-split .export-primary { padding: 0 var(--space-1); }
+
+  /* Safety net: the filename may clip at the extreme (320px) but must
+     never paint under the view pill again. */
+  .header-zone-start { overflow: hidden; }
 }

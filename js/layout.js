@@ -5,6 +5,7 @@
         state,
         elements,
         narrowScreenQuery,
+        phoneQuery,
         STORAGE_KEYS,
         VIEW_MODES,
         MIN_SPLIT_PERCENT,
@@ -12,8 +13,34 @@
         DIVIDER_KEY_STEP_PERCENT,
     } = App;
 
+    // The split stacks editor over preview on narrow screens.
+    function isStackedSplit() {
+        return narrowScreenQuery.matches && getEffectiveViewMode() === "split";
+    }
+
     function getEffectiveViewMode() {
-        return narrowScreenQuery.matches && state.viewMode === "split" ? "edit" : state.viewMode;
+        // Phones (<640px) offer a two-way Edit|Preview toggle: split folds to
+        // edit there. state.viewMode keeps "split" so wider screens restore it.
+        if (phoneQuery.matches && state.viewMode === "split") return "edit";
+        // Otherwise split stays split — on phones it stacks vertically.
+        return state.viewMode;
+    }
+
+    // Scroll sync only means something side by side: dim it elsewhere.
+    function updateSplitDependentControls() {
+        const canSync = getEffectiveViewMode() === "split";
+        elements.syncScrollButton.disabled = !canSync;
+        elements.syncScrollButton.title = canSync ? "Sync scroll" : "Sync scroll — split view only";
+        if (elements.syncScrollMenuItem) elements.syncScrollMenuItem.disabled = !canSync;
+    }
+
+    // The toolbar button and the phone's utility-menu item mirror one state.
+    function syncScrollControls() {
+        const enabled = String(state.isScrollSyncEnabled);
+        elements.syncScrollButton.setAttribute("aria-pressed", enabled);
+        if (elements.syncScrollMenuItem) {
+            elements.syncScrollMenuItem.setAttribute("aria-checked", enabled);
+        }
     }
 
     let hasAppliedViewMode = false;
@@ -22,6 +49,8 @@
         const effectiveMode = getEffectiveViewMode();
         const didChange = elements.workspace.dataset.view !== effectiveMode;
         elements.workspace.dataset.view = effectiveMode;
+        syncDividerOrientation();
+        updateSplitDependentControls();
 
         elements.viewModeButtons.forEach((button) => {
             button.setAttribute("aria-pressed", String(button.dataset.viewMode === effectiveMode));
@@ -59,7 +88,11 @@
     function moveDivider(event) {
         if (!elements.divider.hasPointerCapture(event.pointerId)) return;
         const workspaceBounds = elements.workspace.getBoundingClientRect();
-        const pointerPercent = ((event.clientX - workspaceBounds.left) / workspaceBounds.width) * 100;
+        // Stacked (phone) split drags vertically; wide split drags horizontally.
+        const stacked = isStackedSplit();
+        const pointerPercent = stacked
+            ? ((event.clientY - workspaceBounds.top) / workspaceBounds.height) * 100
+            : ((event.clientX - workspaceBounds.left) / workspaceBounds.width) * 100;
         applySplitPercent(pointerPercent);
     }
 
@@ -72,15 +105,24 @@
 
     function handleDividerKeydown(event) {
         const currentPercent = Number(elements.divider.getAttribute("aria-valuenow"));
+        const stacked = isStackedSplit();
+        const decreaseKey = stacked ? "ArrowUp" : "ArrowLeft";
+        const increaseKey = stacked ? "ArrowDown" : "ArrowRight";
         let nextPercent = null;
 
-        if (event.key === "ArrowLeft") nextPercent = currentPercent - DIVIDER_KEY_STEP_PERCENT;
-        if (event.key === "ArrowRight") nextPercent = currentPercent + DIVIDER_KEY_STEP_PERCENT;
+        if (event.key === decreaseKey) nextPercent = currentPercent - DIVIDER_KEY_STEP_PERCENT;
+        if (event.key === increaseKey) nextPercent = currentPercent + DIVIDER_KEY_STEP_PERCENT;
         if (nextPercent === null) return;
 
         event.preventDefault();
         const appliedPercent = applySplitPercent(nextPercent);
         App.writeStorage(STORAGE_KEYS.splitPercent, String(appliedPercent));
+    }
+
+    // The divider flips between col-resize (wide) and row-resize (stacked):
+    // keep aria in step so assistive tech announces the right axis.
+    function syncDividerOrientation() {
+        elements.divider.setAttribute("aria-orientation", isStackedSplit() ? "horizontal" : "vertical");
     }
 
     function syncScroll(sourceElement, targetElement, sourceName) {
@@ -98,18 +140,26 @@
 
     function toggleScrollSync() {
         state.isScrollSyncEnabled = !state.isScrollSyncEnabled;
-        elements.syncScrollButton.setAttribute("aria-pressed", String(state.isScrollSyncEnabled));
+        syncScrollControls();
         App.writeStorage(STORAGE_KEYS.syncScroll, String(state.isScrollSyncEnabled));
     }
 
     function applyTheme(theme) {
         document.documentElement.dataset.theme = theme;
         const label = theme === "dark" ? "Light theme" : "Dark theme";
-        App.setButtonIcon(elements.themeButton, theme === "dark" ? "sun" : "moon");
+        const iconName = theme === "dark" ? "sun" : "moon";
+        App.setButtonIcon(elements.themeButton, iconName);
         elements.themeButton.setAttribute("aria-label", label);
         elements.themeButton.title = label;
         const labelNode = elements.themeButton.querySelector(".button-label");
         if (labelNode) labelNode.textContent = label;
+        // The phone's utility menu mirrors the toggle (the button hides <768px).
+        if (elements.themeMenuItem) {
+            App.setButtonIcon(elements.themeMenuItem, iconName);
+            elements.themeMenuItem.title = label;
+            const menuLabel = elements.themeMenuItem.querySelector(".menu-label");
+            if (menuLabel) menuLabel.textContent = label;
+        }
     }
 
     function toggleTheme() {
@@ -157,6 +207,7 @@
 
     Object.assign(App, {
         getEffectiveViewMode,
+        isStackedSplit,
         applyViewMode,
         setViewMode,
         applySplitPercent,
@@ -164,6 +215,9 @@
         moveDivider,
         endDividerDrag,
         handleDividerKeydown,
+        syncDividerOrientation,
+        syncScrollControls,
+        updateSplitDependentControls,
         syncScroll,
         toggleScrollSync,
         applyTheme,

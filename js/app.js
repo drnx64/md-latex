@@ -14,7 +14,7 @@
         App.applySplitPercent(Number.isFinite(savedSplitPercent) && savedSplitPercent > 0 ? savedSplitPercent : 50);
 
         state.isScrollSyncEnabled = App.readStorage(STORAGE_KEYS.syncScroll) !== "false";
-        elements.syncScrollButton.setAttribute("aria-pressed", String(state.isScrollSyncEnabled));
+        App.syncScrollControls();
     }
 
     function configureLibraries() {
@@ -36,7 +36,7 @@
         }
     }
 
-    // Paper-size radios in the overflow menu: one checked at a time, saved for
+    // Paper-size radios in the export menu: one checked at a time, saved for
     // the next session, applied by export.js on the next PDF.
     function bindPaperSizeMenu() {
         const items = [...document.querySelectorAll("[data-paper-size]")];
@@ -111,8 +111,15 @@
             trigger.setAttribute("aria-expanded", "true");
             positionMenu();
             window.requestAnimationFrame(() => menu.classList.add("is-open"));
-            const firstItem = menu.querySelector(".menu-item");
+            const firstItem = visibleItems()[0];
             if (firstItem) firstItem.focus();
+        }
+
+        // Width-dependent items (phone-only utilities) are display:none:
+        // never focus or arrow into an invisible row.
+        function visibleItems() {
+            return Array.from(menu.querySelectorAll(".menu-item"))
+                .filter((item) => item.offsetParent !== null);
         }
 
         function closeMenu(returnFocus) {
@@ -150,7 +157,7 @@
                 closeMenu(true);
                 return;
             }
-            const items = Array.from(menu.querySelectorAll(".menu-item"));
+            const items = visibleItems();
             if (items.length === 0) return;
             const index = items.indexOf(document.activeElement);
             if (event.key === "ArrowDown") {
@@ -188,6 +195,24 @@
         return { close: closeMenu, isOpen: () => isOpen };
     }
 
+    // Two-column cheat sheet for the utility menu's shortcuts dialog.
+    const SHORTCUTS_TEXT = [
+        "Ctrl+B / Ctrl+I / Ctrl+K   Bold, italic, link",
+        "Ctrl+S                     Download .md",
+        "Ctrl+O                     Open file",
+        "Ctrl+F                     Find",
+        "Ctrl+H                     Find and replace",
+        "Ctrl+Alt+T / Ctrl+Alt+W    New tab / close tab",
+        "Ctrl+Alt+← / Ctrl+Alt+→    Move the active tab",
+        "Enter                      Continue the current list",
+        "Esc                        Close find, menu, or dialog",
+    ].join("\n");
+
+    function showKeyboardShortcuts() {
+        // The answer does not matter: Cancel and Close both dismiss it.
+        App.showConfirm(SHORTCUTS_TEXT, "Close");
+    }
+
     function bindEvents() {
         elements.editor.addEventListener("input", App.handleEditorInput);
         elements.editor.addEventListener("keydown", App.handleEditorKeydown);
@@ -201,6 +226,12 @@
         elements.tabs.addEventListener("click", App.handleTabsClick);
         elements.tabs.addEventListener("auxclick", App.handleTabsAuxClick);
         elements.tabs.addEventListener("dblclick", App.handleTabsDoubleClick);
+        elements.tabs.addEventListener("pointerdown", App.handleTabsPointerDown);
+        window.addEventListener("pointermove", App.handleTabsPointerMove);
+        window.addEventListener("pointerup", App.handleTabsPointerUp);
+        window.addEventListener("pointercancel", App.handleTabsPointerUp);
+        // A dragged pointer that leaves the window never reports a pointerup.
+        window.addEventListener("blur", App.handleTabsPointerUp);
         elements.tabs.addEventListener("wheel", App.handleTabsWheel, { passive: false });
         elements.tabs.addEventListener("scroll", App.updateTabFade, { passive: true });
         // The toolbar scrolls sideways too (bar hidden): same wheel rule.
@@ -219,15 +250,34 @@
         });
 
         elements.syncScrollButton.addEventListener("click", App.toggleScrollSync);
+        if (elements.syncScrollMenuItem) {
+            elements.syncScrollMenuItem.addEventListener("click", App.toggleScrollSync);
+        }
         elements.themeButton.addEventListener("click", App.toggleTheme);
+        if (elements.themeMenuItem) {
+            elements.themeMenuItem.addEventListener("click", App.toggleTheme);
+        }
+        if (elements.shortcutsButton) {
+            elements.shortcutsButton.addEventListener("click", showKeyboardShortcuts);
+        }
         elements.openButton.addEventListener("click", () => elements.fileInput.click());
+        if (elements.openMenuItem) {
+            elements.openMenuItem.addEventListener("click", () => elements.fileInput.click());
+        }
         elements.downloadButton.addEventListener("click", App.downloadMarkdown);
         elements.exportHtmlButton.addEventListener("click", App.exportHtml);
         elements.exportDocxButton.addEventListener("click", App.exportDocx);
         elements.printButton.addEventListener("click", App.printDocument);
         elements.exportPdfButton.addEventListener("click", App.exportPdf);
+        if (elements.aboutButton) {
+            elements.aboutButton.addEventListener("click", () => {
+                window.open("https://discord.com/users/929998586375180288", "_blank", "noopener,noreferrer");
+            });
+        }
 
         bindDropdown(elements.overflowButton, elements.overflowMenu, { focusTriggerOnSelect: true });
+        // Export & paper size live under the CTA's chevron, right-anchored.
+        bindDropdown(elements.exportMenuButton, elements.exportMenu, { focusTriggerOnSelect: true });
         bindPaperSizeMenu();
         App.bindFindPanel();
         bindDropdown(elements.headingMenuButton, elements.headingMenu, { scrollContainer: elements.toolbar });
@@ -306,6 +356,8 @@
         }
 
         narrowScreenQuery.addEventListener("change", App.applyViewMode);
+        // Crossing 640px folds split in/out of the two-way phone toggle.
+        App.phoneQuery.addEventListener("change", App.applyViewMode);
         document.addEventListener("keydown", App.handleGlobalKeydown);
         window.addEventListener("beforeprint", App.handleBeforePrint);
         window.addEventListener("afterprint", App.handleAfterPrint);

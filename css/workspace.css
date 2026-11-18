@@ -52,8 +52,14 @@
    to a second line instead of pushing past the panel edge. */
 .find-row[hidden] { display: none; }
 
+/* Replace row reads as a second stage under find. */
+.find-replace-row {
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--border);
+}
+
 .find-input {
-    width: min(240px, 100%);
+    flex: 1 1 180px;
     min-width: 0;
     height: 30px;
     padding: 0 var(--space-1);
@@ -76,6 +82,13 @@
     font-size: var(--step-small);
     text-align: center;
     white-space: nowrap;
+}
+
+.find-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-quarter);
+    margin-left: auto;
 }
 
 .find-button {
@@ -107,11 +120,73 @@
 .find-button-text { min-width: auto; padding: 0 var(--space-1); }
 
 @media (max-width: 800px) {
-    .find-panel { left: var(--space-2); right: var(--space-2); }
-    .find-input { width: 100%; flex: 1; min-width: 0; }
+    .find-panel {
+        left: var(--space-2);
+        right: var(--space-2);
+        padding: var(--space-1);
+    }
+    /* Input takes its own full-width line; count and actions share the next.
+       16px text stops iOS from auto-zooming the field on focus. */
+    .find-input {
+        flex: 1 1 100%;
+        width: 100%;
+        height: 40px;
+        font-size: 16px;
+    }
+    .find-count {
+        min-width: 0;
+        text-align: left;
+    }
+    .find-actions { gap: var(--space-1); }
+    .find-button {
+        min-width: 40px;
+        height: 40px;
+        font-size: var(--step-base);
+    }
+    .find-button-text {
+        min-width: auto;
+        padding: 0 var(--space-2);
+        font-size: var(--step-small);
+    }
+}
+
+/* Find-match highlights: a text-mirroring layer behind the transparent
+   textarea. JS keeps its box identical to the editor's content box (padding,
+   wrap width minus scrollbar) so each <mark> sits under its characters. */
+.editor-highlights {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    overflow: hidden;
+    padding: var(--space-3);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--step-small);
+    line-height: 1.7;
+    tab-size: 4;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    pointer-events: none;
+}
+
+.editor-highlights mark {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    /* Same ink as the textarea above: the duplicate glyphs hide behind it, so
+       any anti-aliasing peek must match the real text color. */
+    color: inherit;
+    border-radius: 2px;
+}
+
+.editor-highlights mark.is-current {
+    background: var(--accent);
 }
 
 .editor {
+    position: relative;
+    z-index: 1;
     display: block;
     width: 100%;
     height: 100%;
@@ -124,6 +199,14 @@
     font-size: var(--step-small);
     line-height: 1.7;
     tab-size: 4;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+/* Selection must stay legible over highlighted matches. */
+.editor::selection {
+    background: color-mix(in srgb, var(--accent) 45%, transparent);
+    color: var(--text);
 }
 
 .editor:focus-visible { outline-offset: -2px; }
@@ -133,6 +216,15 @@
     cursor: col-resize;
     touch-action: none;
     transition: background var(--duration-quick) var(--ease-out);
+}
+
+/* Phone: split stacks editor over preview with a horizontal divider. */
+@media (max-width: 800px) {
+    .workspace[data-view="split"] {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, var(--split-percent)) 8px minmax(0, 1fr);
+    }
+    .divider { cursor: row-resize; }
 }
 
 .divider:hover,
